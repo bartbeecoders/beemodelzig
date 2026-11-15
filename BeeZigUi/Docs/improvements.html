@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeeZigUi Improvements</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1f23; --muted: #626872; --line: #e1ded8; --code: #f1efea;
+  --crash: #b8331f; --high: #c4542a; --med: #c98a12; --low: #6f7680; --perf: #2f6fb0; --api: #7a4fb0; --done: #2f8f4e;
+  --c-crash: #f9e0db; --c-high: #f8e6dc; --c-med: #fbf0d9; --c-low: #eceef1; --c-perf: #e0ecf8; --c-api: #ece4f6; --c-done: #e3f3e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17191d; --panel: #1f2227; --ink: #e7e9ec; --muted: #9aa1ab; --line: #30343b; --code: #2a2e34;
+    --crash: #f07a64; --high: #ee9a6a; --med: #e8b04a; --low: #a3aab4; --perf: #7fb2ea; --api: #b99af0; --done: #5cc27e;
+    --c-crash: #40221d; --c-high: #3d2a1f; --c-med: #3a3020; --c-low: #2a2e34; --c-perf: #1e2f42; --c-api: #2e2640; --c-done: #1f3527;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17191d; --panel: #1f2227; --ink: #e7e9ec; --muted: #9aa1ab; --line: #30343b; --code: #2a2e34;
+  --crash: #f07a64; --high: #ee9a6a; --med: #e8b04a; --low: #a3aab4; --perf: #7fb2ea; --api: #b99af0; --done: #5cc27e;
+  --c-crash: #40221d; --c-high: #3d2a1f; --c-med: #3a3020; --c-low: #2a2e34; --c-perf: #1e2f42; --c-api: #2e2640; --c-done: #1f3527;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header, main { max-width: 1160px; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 28px; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+h2 { font-size: 17px; margin: 26px 0 8px; }
+.sub { color: var(--muted); margin: 0 0 14px; max-width: 860px; }
+code { font: 12.5px/1.4 ui-monospace, "JetBrains Mono", monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 12px 0; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.tile b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.tile span { color: var(--muted); font-size: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+.card ol, .card ul { margin: 6px 0; padding-left: 20px; }
+.card li { margin: 4px 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 6px; align-items: center; }
+.controls input, .controls select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.controls input { flex: 1 1 240px; }
+.controls .count { color: var(--muted); font-size: 12px; }
+.item { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin: 8px 0; padding: 10px 14px; }
+.item .top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.item .id { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); min-width: 34px; }
+.item .t { font-weight: 600; flex: 1 1 320px; }
+.item .area { color: var(--muted); font-size: 12px; }
+.item dl { display: grid; grid-template-columns: 82px 1fr; gap: 3px 12px; margin: 8px 0 0; font-size: 13.5px; }
+.item dt { color: var(--muted); font-size: 12px; padding-top: 1px; }
+.item dd { margin: 0; }
+.chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.crash { background: var(--c-crash); color: var(--crash); } .high { background: var(--c-high); color: var(--high); }
+.medium { background: var(--c-med); color: var(--med); } .low { background: var(--c-low); color: var(--low); }
+.perf { background: var(--c-perf); color: var(--perf); } .api { background: var(--c-api); color: var(--api); }
+.fixed { background: var(--c-done); color: var(--done); }
+.st-fixed { background: var(--c-done); color: var(--done); }
+.st-partial { background: var(--c-med); color: var(--med); }
+.st-open { background: var(--c-low); color: var(--low); border: 1px solid var(--line); }
+.done-note { color: var(--ink); }
+.ev { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+td { border-top: 1px solid var(--line); padding: 6px 10px; vertical-align: top; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wrap { overflow-x: auto; }
+footer { color: var(--muted); font-size: 12px; max-width: 1160px; margin: 0 auto; padding: 24px 16px 48px; }
+@media (max-width: 640px) { .item dl { grid-template-columns: 1fr; } .item dt { padding-top: 6px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>BeeZigUi: improvements to make</h1>
+  <p class="sub">Bugs, performance and API problems found in BeeZigUi (Zui) on 2026-11-14, and what has been done about each: while moving BeeModel's dialogs onto it (milestones M0 and M1 of BeeModel's <code>Docs/beezigui-migration.html</code>), and in a review of the whole library in four parts (core; widgets; drawing and the renderers; backends and add-ons). Every item names the code, says what goes wrong, and says how sure it is. Most were reproduced: the tests are in <code>Docs/repro/</code> (<code>Docs/repro/run.sh</code> runs them; a failing or panicking test there is the problem still being there).</p>
+  <div class="summary" id="summary"></div>
+</header>
+<main>
+
+<h2>Where it stands</h2>
+<div class="card">
+  <p style="margin-top:0"><b>2026-11-14, after the first round of work:</b> every crash and every bug rated high or medium is fixed, with a regression test (<code>tests/regress_test.zig</code>, named by item id, plus tests in <code>backends/software.zig</code>, <code>backends/wayland.zig</code>, <code>backends/wayland/keymap.zig</code>, <code>src/overlay.zig</code>, <code>src/font.zig</code> and <code>tests/files_test.zig</code>). The software renderer prototype is in (bench frame 2267 → ~700 µs, node graph 10.5 → 4.3 ms, pixel-identical in BeeModel's scenarios). What is open or partial is listed with the status filter; the notes say what is missing. The order below was the plan for this round.</p>
+  <p style="margin-bottom:0">Checks run after the work: BeeZigUi's tests, scenarios, docs check and gl-check; BeeModel's 325 scenarios, its unit tests and <code>zig build test-ui</code>. In BeeModel (release, 1280×800, same core) the Zui dialogs got about twice as fast: Preferences 2.21 → 1.09 ms, Keymap 2.43 → 1.18, Undo History 1.35 → 0.79, Shortcuts 2.00 → 0.95.</p>
+</div>
+
+<h2>Order of work (first round)</h2>
+<div class="card">
+  <ol>
+    <li><b>Crashes first</b> (C1–C6): small, local fixes; each is a panic in Debug, and most are undefined behaviour in ReleaseFast.</li>
+    <li><b>The software renderer</b> (P1–P5): a prototype exists (<code>Docs/repro/render/sw2.zig</code>). On the bench frame it renders in <b>689 µs instead of 2267 µs</b>, and the node bench in <b>7.5 ms instead of 10.5 ms</b>, with <b>0 pixels different</b> (checked again for this list: <code>Docs/repro/run.sh bench</code>). A modal dialog's backdrop drops from 850 to 70 µs. This is BeeModel's biggest frame-time win: its Zui dialogs cost 0.3–0.5 ms more than its own did.</li>
+    <li><b>Input and Escape ownership</b> (B1–B5, A12): BeeModel works around B1 today (<code>zuihost.shown()</code>) and will meet B2, B3 and B5 in its Preferences and forms.</li>
+    <li><b>Before the BeeModel milestones that need them:</b> M2 property panels: B6 (typed values), B8 (layout that never shrinks). M3 lists: C2 (Shift+click crash), L4 (UTF-8 in renames), L5 (long drag kinds). M4 menus: P10 (palette). M5 text: P9, P11, L3, L9. M7 docking: B9 (dock overflow), A13 (detached windows on the app's connection). M8 node editor: P6, P7, B12 (glyph cache).</li>
+    <li><b>The Wayland backend</b> (H1, C5, B9–B11) and the script player (C6): matters for Zui's own native programs; BeeModel keeps its own Wayland client.</li>
+    <li>The rest, as time allows. Fixed items move to the bottom list with the date.</li>
+  </ol>
+</div>
+
+<div class="controls">
+  <input id="q" type="search" placeholder="Filter: a word, a file, an id (C3, P1...)">
+  <select id="sev"><option value="">every kind</option><option value="crash">crash</option><option value="high">bug, high</option><option value="medium">bug, medium</option><option value="low">bug, low</option><option value="perf">performance</option><option value="api">API</option><option value="fixed">fixed</option></select>
+  <select id="area"><option value="">every area</option></select>
+  <select id="status"><option value="">any status</option><option value="open">open</option><option value="partial">partial</option><option value="fixed">fixed</option></select>
+  <span class="count" id="count"></span>
+</div>
+<div id="list"></div>
+
+<h2>Renderer: where the time goes</h2>
+<div class="card wrap">
+  <p style="margin-top:0">Measured on a Ryzen 9 7950X, ReleaseFast, 1280×800, with <code>Docs/repro/render/prof.zig</code> (the bench with a timer per kind of draw command). The prototype is <code>Docs/repro/render/sw2.zig</code>.</p>
+  <table>
+    <tr><th>Frame or shape</th><th class="n">Today</th><th class="n">Prototype</th><th>Pixels</th></tr>
+    <tr><td>Bench frame: 306 widgets, 545 commands (render only)</td><td class="n">2267 µs</td><td class="n">689 µs</td><td>identical</td></tr>
+    <tr><td>Node bench: 200 nodes, 300 wires, 8475 commands</td><td class="n">10.5 ms</td><td class="n">7.5 ms</td><td>identical</td></tr>
+    <tr><td>Full-window translucent backdrop (a modal dialog)</td><td class="n">850 µs</td><td class="n">70 µs</td><td>identical</td></tr>
+    <tr><td>Full-window opaque fill / frame clear</td><td class="n">196 / 101 µs</td><td class="n">31 / 32 µs</td><td>identical</td></tr>
+    <tr><td>Window background 400×500, radius 8</td><td class="n">123 µs</td><td class="n">31 µs</td><td>identical</td></tr>
+    <tr><td>40 buttons</td><td class="n">750 µs</td><td class="n">79 µs</td><td>identical</td></tr>
+    <tr><td>Dialog shadow 500×300</td><td class="n">74 µs</td><td class="n">31 µs</td><td>identical</td></tr>
+    <tr><td>Flat translucent mesh 500×500</td><td class="n">300 µs</td><td class="n">38 µs</td><td>identical</td></tr>
+    <tr><td>20 node wires (Wang's formula, P6; not in the prototype)</td><td class="n">1330 µs</td><td class="n">600 µs</td><td>a smooth curve, fewer pieces</td></tr>
+  </table>
+  <p>Today's split of the bench frame: rects 1781 µs (219 calls), shadows 237 µs, text 138 µs, the clear 101 µs, paths 73 µs. Of the node bench: paths 6577 µs (wires 5.3 ms, pin circles 1.2 ms), rects 2177 µs, shadows 598 µs, text 308 µs. The UI pass itself is cheap: 32 µs for the bench frame, 527 µs for the node graph.</p>
+  <p style="margin-bottom:0">In BeeModel (release, 1280×800, its own dialog against Zui's): Undo History 1.18 → 1.65 ms, Keyboard Shortcuts 1.74 → 2.04 ms. P1 and P4 take most of that difference away.</p>
+</div>
+
+</main>
+<footer>BeeZigUi · Docs/improvements.html · 2026-11-14. Keep it current: when an item is fixed, set its status to <code>fixed</code> with the date and move its reproduction into <code>tests/</code>.</footer>
+
+<script>
+// [id, kind, area, title, where, what goes wrong, fix, evidence, status, what was done]
+// kind: crash | high | medium | low | perf | api | fixed
+// evidence: "reproduced: file" | "measured: file" | "read" | "suspected" | "found in BeeModel"
+const ITEMS = [
+  // ---- crashes ----
+  ["C1", "crash", "widgets", "A 64-bit integer number field panics on a big typed value",
+   "src/values.zig:191 (store)",
+   "numberField on an i64 with no max; type 1e30 and Enter: \"integer part of floating point value out of bounds\". Undefined behaviour in ReleaseFast. The clamp to @floatFromInt(maxInt(i64)) rounds up to 2^63, which doesn't fit back. u64 the same.",
+   "Compare v >= hi and return maxInt(T) directly (or clamp to the float below hi).",
+   "reproduced: widgets/values.zig", "fixed", "store() compares with the limits instead of converting them. Test: regress_test \"C1\"."],
+  ["C2", "crash", "widgets", "Shift+click in a list panics after the list got shorter",
+   "src/lists.zig:51-58 (ListState.click); beginList clamps cursor, not anchor",
+   "Click row 9 of 10, the app deletes rows (selected.len = 5), Shift+click row 2: index out of bounds 10 / 5. Shift+Up/Down and tile grids take the same path.",
+   "Clamp anchor in beginList / beginTiles; in click use the anchor only if it is < selected.len.",
+   "reproduced: widgets/lists.zig", "fixed", "ListState.fit() keeps cursor, anchor and rename inside the rows; click() ignores an anchor past the end. Test: regress_test \"C2\"."],
+  ["C3", "crash", "render", "Far-away or NaN triangle corners panic the software renderer",
+   "backends/software.zig:155-158, :454 (fillTriangle, edge)",
+   "A mesh vertex at x = 3e9, or a NaN vertex (a 3D point on the camera plane), panics \"integer does not fit\"; a line from (10,10) to (5e7,3e7) overflows i64 in edge(). UB in ReleaseFast (writes stay in the clip, so garbage pixels).",
+   "Drop triangles that are NaN or entirely outside the clip; clamp coordinates to about ±2^22 before fixed point.",
+   "reproduced: render/t.zig", "fixed", "Corners that are not finite draw nothing; corners are clamped to ±2^22 px before fixed point. Test: software.zig \"C3\"."],
+  ["C4", "crash", "render", "Huge rects, shadows and images panic",
+   "backends/software.zig:366-378 (rect, margin with a huge border_width), :304 (shadow flat_x0), :492 (image)",
+   "A rect at x = -1e10, or border_width 1e10: \"integer part of floating point value out of bounds\".",
+   "Use the clamping roundToInt everywhere, as toPixels already does.",
+   "reproduced: render/t.zig", "fixed", "NaN or infinite rects, shadows and images draw nothing; every float-to-pixel conversion clamps (toI). Test: software.zig \"C4\"."],
+  ["C5", "crash", "wayland", "Five or more detached windows drawn in one present overflow the fd array",
+   "backends/wayland.zig:293 (req, ofds[4]), via growPool :650",
+   "Each new surface queues its memfd for create_pool and nothing flushes in between: index out of bounds 4 / 4. Writes past the array in ReleaseFast. Restoring a layout with five detached panels does it.",
+   "In req, flush when the fd queue is full.",
+   "reproduced: backends/wl.zig (a fake compositor)", "fixed", "req() flushes first when a request's fds would not fit. Test: wayland.zig \"C5\" (fake compositor)."],
+  ["C6", "crash", "script", "The script player crashes or runs out of memory on some input",
+   "src/script.zig:265-271, :295, :298",
+   "\"frames inf\" panics; \"wait 1e9\" queues 6×10^10 frames; \"type\" with 49+ UTF-8 continuation bytes never advances and grows the queue until memory runs out.",
+   "Check counts are finite and cap them; when a step consumes nothing, advance at least one byte.",
+   "reproduced: backends/sc.zig, backends/sc2.zig", "fixed", "frames / wait refuse non-finite or more than 108,000 frames with a message; type moves on through bytes that aren't UTF-8. Tests: regress_test \"C6\"."],
+
+  // ---- bugs, high ----
+  ["H1", "high", "wayland", "A keymap with two layouts makes every key type \"1\"",
+   "backends/wayland/keymap.zig:99-115; the active group is ignored at backends/wayland.zig:913-918",
+   "xkbcommon writes multi-layout keys as key <AD01> { symbols[1]= [ q, Q ], symbols[2]= [...] }: the parser takes the [ of symbols[1], so the only symbol is \"1\". With us,de every letter types 1 and Ctrl+Z is Ctrl+1. us and fr alone are right. (BeeModel has its own keymap parser; this hits Zui's native programs.)",
+   "Parse each symbols[N]= [...] list after its =, one table per group; pick the table by the group in wl_keyboard.modifiers.",
+   "reproduced: backends/km.zig (keymaps from xkbcli)", "fixed", "Every symbols[N]= list is read into its own layout (up to 4); the group from wl_keyboard.modifiers picks the one in use. Test: keymap.zig \"a keymap with two layouts\"; Docs/repro backends/km.zig now types q and a with us,de."],
+
+  // ---- bugs, medium ----
+  ["B1", "medium", "core", "A press right after a window, popup or dialog closed is lost",
+   "src/window.zig:103-126 (windowAt keeps windows with last_frame + 1 == frame_index); src/ui.zig:1045, :1078; dead_press at :634",
+   "A window shown in frame N and closed during frame N (a button inside it set open = false, a popup closed by closePopup or a menu click, a dialog answered) still counts as hovered and pressed in frame N+1, so that frame's press goes nowhere. A dialog answers for every point, so the whole window is blocked for that frame. In an event-driven app frame N+1 is the next click. BeeModel works around it (zuihost.shown()).",
+   "In endFrame, set last_frame = 0 for windows closed this frame (popups no longer listed, dialogs and windows whose open flag is now false).",
+   "reproduced: core/t.zig; found in BeeModel", "fixed", "Popups closed during a frame, and dialogs and windows whose open flag went false, are left out of the next hit test; a press on a window that wasn't described at all is kept for the next frame instead of dying. Tests: regress_test \"B1\" (two)."],
+  ["B2", "medium", "core", "One Escape closes a popup inside a dialog and the dialog too",
+   "src/overlay.zig:62-66 lowers popup_count in beginFrame; src/feedback.zig:169 then sees popup_count == 0",
+   "A dialog with an open drop-down; Escape closes both.",
+   "The overlay records that it took Escape; the dialog checks that (see A12).",
+   "reproduced: core/t.zig", "fixed", "Whatever acts on Escape takes it (removes it from keys_pressed): popups, fields, drags, pies, menus. Dialogs decide at dialogButtons / endDialog. Test: regress_test \"B2\"."],
+  ["B3", "medium", "widgets", "Escape during a slider or number-field drag in a dialog also closes the dialog",
+   "src/feedback.zig:169 latches Escape in beginDialog, before the widgets run; widgets.zig:252, values.zig:279",
+   "Drag a slider in a dialog (BeeModel's Preferences), press Escape: the value goes back (right) and the dialog closes (wrong). The colour picker's areas and view2d handles do the same.",
+   "Require ui.active == .none for the dialog's Escape, or decide it in endDialog after widgets took it (A12).",
+   "reproduced: widgets/dialog_escape.zig", "fixed", "Same Escape model as B2. Tests: regress_test \"B3\" (drags; a field's typing)."],
+  ["B4", "medium", "core", "Release on one widget and press on another in the same frame: the second never gets held or clicked",
+   "src/ui.zig:1076-1097; src/window.zig:106",
+   "The press test needs active == .none, but the first widget still holds it; in either order the second widget sees nothing. Several events between two frames are normal in an app that draws only when the compositor is ready.",
+   "Record the order of edges in Input; handle the release first, then the press, in the same frame.",
+   "reproduced: core/t.zig", "fixed", "Input.pressed_after_release: the held widget gets its release (and click) first, then the press goes to what is under it. Test: regress_test \"B4\", both orders."],
+  ["B5", "medium", "core", "Press, release, press in one frame (fast double-click, then hold) loses the hold",
+   "src/ui.zig:1086",
+   "The widget sees pressed and released and lets go, although the button is down again; the next frame doesn't recover.",
+   "Same edge order as B4: when the last edge was a press, stay active after reporting the click.",
+   "reproduced: core/t.zig", "fixed", "A release before a later press in the same frame doesn't end the new hold; a whole double click in one frame still clicks. Test: regress_test \"B5\"."],
+  ["B6", "medium", "widgets", "Clicking a number field and pressing Enter, without typing, changes the value",
+   "src/values.zig:347 (beginTyping formats with @max(decimals, 6) fixed decimals)",
+   "1.2345e-7 becomes 0; 1/3 becomes 0.333333; values of 1e15 and up lose precision through {e:.3}. Reported as changed and committed: an undo step nobody asked for.",
+   "Format with round-trip precision ({d}); or, if the text is unchanged at commit, keep the old value.",
+   "reproduced: widgets/values.zig", "fixed", "A number committed with the text it started with keeps its exact value and reports cancelled (no undo step). Test: regress_test \"B6\"."],
+  ["B7", "medium", "core", "A .fill item in an auto-width column never gets narrower; dialogs and popups only grow",
+   "src/layout.zig:156-160 (crossExtent falls back to previous.content.x); src/feedback.zig:139-141; src/overlay.zig:178-180",
+   "The fill item's own stretched width counts as content next frame. A label that gets shorter leaves the row at 271.9 units for good; a dialog stays 466.5 wide; no redraw is asked for. (Groups were fixed for this in Phase 18; this path wasn't.)",
+   "Fall back to previous.cross_natural; size dialogs and popups from measure.natural(), not content.",
+   "reproduced: core/t.zig", "fixed", "crossExtent() falls back to cross_natural; dialogs and popups size from measure.natural(). Test: regress_test \"B7\"; layout.zig test updated to set cross_natural."],
+  ["B8", "medium", "widgets", "A dock can hold more areas than max_areas; then panels vanish and the layout can't be read back",
+   "src/dock.zig:214 (split has no area-count check), :238-245 (move detaches before it allocates)",
+   "Split and float 32 times, then keep splitting: 48 areas, areas() lists 32, 16 panels are never drawn. move() of a floating panel into the full tree fails half-way and orphans it, and Dock.read(write(d)) gives error.InvalidDock: the saved workspace won't load. (BeeModel's M7 moves its areas onto Dock.)",
+   "split refuses at max_areas; move allocates the new split node before detaching.",
+   "reproduced: widgets/dock.zig", "fixed", "split() refuses past max_areas (so the node table can't fill); move() checks for a free node before a panel leaves the floating list; Dock.areaCount(). Test: regress_test \"B8\"."],
+  ["B9", "medium", "wayland", "Repeat rate 0 makes the event loop spin while a key is held",
+   "backends/wayland.zig:419-440",
+   "Compositors send repeat_info(0, ...) for \"no repeat\"; repeat_code is still set, so wait(-1) polls with timeout 0: 469,176 wakeups in 200 ms.",
+   "Don't arm repeat when the rate is 0.",
+   "reproduced: backends/wl.zig", "fixed", "A repeat rate of 0 never arms repeat (and clears a held one). Test: wayland.zig \"B9\"."],
+  ["B10", "medium", "wayland", "An fd that comes with an event the client ignores shifts every later fd by one",
+   "backends/wayland.zig:382, :713 (popFd is first in, first out)",
+   "After setClipboard or cancelled destroys the old data source, a late wl_data_source.send(fd) is dropped but its fd stays queued. The next keymap event pops that pipe instead: the layout doesn't load, the real keymap fd leaks, and later clipboard sends write to the wrong pipe (the other program's paste hangs).",
+   "Know which events carry fds (or remember destroyed sources) and pop and close the fd for ignored ones too.",
+   "reproduced: backends/wl.zig", "fixed", "The last eight dropped data sources are remembered; a send to one takes and closes its fd. Test: wayland.zig \"B10\"."],
+  ["B11", "medium", "wayland", "The first click after dragging the window frame is swallowed",
+   "backends/wayland.zig:474-475, :519-520, :843-845",
+   "During xdg_toplevel.move / resize the compositor has the pointer: leave, then enter, but no release. Zui still thinks the button is down, the title bar stays active and takes the next press. Detached windows too.",
+   "After act(.move / .resize) and on pointer leave, release every button still down; on keyboard leave, release held keys.",
+   "suspected: backends/mv.zig shows the Zui side; the missing release is from the protocol, not observed", "fixed", "Pointer leave releases held buttons, keyboard leave held keys. Test: wayland.zig \"B11\" (the compositor half is still from the protocol, not observed)."],
+  ["B12", "medium", "render", "The glyph cache never shrinks",
+   "src/font.zig:200-216 (clearCache is never called)",
+   "The key holds the size in quarter pixels and the subpixel offset: smoothly zooming one 30-character string from 8 to 40 px left 11,960 entries (2.8 MB). A 3000 px glyph is 5.6 MB per subpixel offset; sizes to 15,000 px are accepted. The node editor's zoom grows memory and rasterizes again on every zoom frame.",
+   "Cap the cache (size or least recently used), coarser size steps when big, no subpixel offsets above ~64 px, refuse huge glyphs.",
+   "reproduced: render (measured in the review)", "fixed", "A byte budget (Font.cache_limit, 16 MB) clears the cache past it; sizes in whole pixels above 64 px and 4 px above 256 px; no subpixel variants above 64 px; NaN sizes are safe. Test: regress_test \"B12\"."],
+  ["B13", "medium", "render", "One glyph wider than the OpenGL atlas wipes the atlas every frame",
+   "backends/opengl.zig:437-443",
+   "A glyph over 1023 px never fits: each try flushes, clears the atlas and gives up, so every other glyph is uploaded again every frame. The glyph cache is also keyed by @intFromPtr(font): a new font at a freed font's address gets its old glyphs.",
+   "Skip (or draw untextured) glyphs that can't fit; key by a font id, not its address.",
+   "read", "fixed", "Glyphs bigger than the atlas are skipped instead of wiping it; fonts have an id (Font.id) the GL cache keys by. Test: regress_test \"B13\" (ids); the GL path itself has no test (no GL context here)."],
+  ["B14", "high", "widgets", "Typing into the middle of a text area garbles the text after the caret",
+   "src/textarea.zig (Edit.replace)",
+   "The tail moved with copyForwards even when it moves right and overlaps: inserting fewer bytes than the tail repeats bytes (\"abcdefghij\", Home, x gave \"xaaaaaaaaaa\"-like text). Found with BeeModel's AI prompt (M5).",
+   "copyBackwards when the text grows.",
+   "reproduced: text_test", "fixed", "copyBackwards when the insert moves the tail right. Test: text_test \"typing in the middle keeps the text after the caret\"."],
+  ["B15", "high", "core", "A focused text area does not want the keyboard",
+   "src/ui.zig (wantsKeyboard)",
+   "wantsKeyboard looked at the text input, the number field and Tab focus, not the text area: a host that routes keys by it never let a text area be typed in. Found with BeeModel's AI prompt (M5).",
+   "Count the text area's focus.",
+   "reproduced: text_test", "fixed", "wantsKeyboard is true while a text area has focus. Test: text_test \"a focused text area wants the keyboard\"."],
+  ["B16", "medium", "core", "Text typed between two frames is cut at 64 bytes",
+   "src/input.zig (text_buffer, key_event_buffer)",
+   "Input kept 64 bytes of text and 32 key events a frame: a burst (a slow frame while typing, an input method's phrase, a driver typing a sentence) lost the rest silently.",
+   "Room for a paragraph.",
+   "reproduced: text_test", "fixed", "1024 bytes of text and 256 key events a frame. Test: text_test \"a long burst typed between two frames arrives whole\"."],
+  ["B17", "medium", "widgets", "After Enter, a console line lets go of the keys until the next frame",
+   "src/textview.zig (consoleInput)",
+   "To start a new session it cleared text_edit.id, so wantsKeyboard was false until the line was described again: a host routing keys by it sent what was typed right after Enter to the app (BeeModel: a command typed while a job ran became shortcuts).",
+   "Restart the session without dropping the id.",
+   "reproduced: text_test", "fixed", "text_input.State.restart starts the new session at the next frame; the id and the keys stay. Test: text_test \"the console keeps the keys between Enter and the next frame\"."],
+  ["B18", "high", "widgets", "Backspace on the wheel with the pointer on a child of the open arc crashes",
+   "src/pie.zig (wheel)",
+   "Backspace closed the arc (group = null) after the child under the pointer was found; drawing it then read the closed group: a null unwrapped. Found by BeeModel's fuzz (M6).",
+   "Forget the hovered child with its arc; drop an arc whose entry is gone.",
+   "reproduced: pie_test", "fixed", "The hovered child goes with the arc; an arc whose entry no longer has children (the app's entries changed) closes. Test: pie_test \"the wheel: Backspace with the pointer on a child of the open arc\"."],
+  ["B19", "medium", "widgets", "A toast made between two frames is cut short by the time before it",
+   "src/feedback.zig (endFrame)",
+   "Toasts age by each frame's dt; the first frame after one was made (an idle app sleeps between frames) took the whole gap since the frame before, so it went early (BeeModel: a 4 s toast went after 3.4 s, its redraw falling in a quiet moment).",
+   "Start a toast's time in the frame that first shows it.",
+   "reproduced: feedback_test", "fixed", "A new toast is not aged in its first frame. Test: feedback_test \"a toast made between two frames lasts its seconds from when it shows\"."],
+
+  // ---- bugs, low ----
+  ["L1", "low", "core", "A horizontal-and-vertical scroll area can't stay at the bottom",
+   "src/containers.zig:106 clamps with content_height - rect.h; the view is scrollbar_width + 4 shorter",
+   "The last 14 units can't be reached and the view jumps back after each wheel step.",
+   "Clamp after computing body, with body.h.",
+   "reproduced: core/t.zig", "fixed", "The vertical scroll is clamped to the height left above the horizontal bar. Test: regress_test \"L1\"."],
+  ["L2", "low", "core", "A window created after a dialog is hit-tested in front of it for one frame",
+   "src/window.zig:167 (getOrCreate appends new windows at the front)",
+   "For that frame the modal dialog can be clicked past.",
+   "Insert new ordinary windows below the dialog and popup layers.",
+   "suspected", "fixed", "New windows go in below popups and dialogs. Test: regress_test \"L2\"."],
+  ["L3", "low", "widgets", "Pasting into a text area can leave invalid UTF-8",
+   "src/textarea.zig:374",
+   "Paste copies bytes into a 4096-byte buffer and can cut a character in half (4095 \"a\" then \"é\" ends with a lone 0xC3); no UTF-8 check (the single-line field has sanitize); past 4 KB is dropped without a word.",
+   "Reuse text_input's sanitize with a frame buffer, cut with fitLength.",
+   "reproduced: widgets/textarea.zig", "fixed", "Paste keeps whole, valid UTF-8 characters only, of any length (frame memory). No test of its own yet."],
+  ["L4", "low", "widgets", "Byte-count truncation splits UTF-8 characters",
+   "toasts src/feedback.zig:316 (160 B); disabled-click reason src/ui.zig:618 (160 B); detached window titles src/window.zig:224 (64 B); drag labels and hints src/dnd.zig (96 B); src/textview.zig:228 and :485; rename buffers in src/lists.zig and src/tabs.zig; src/pie.zig:514 takes the label's first byte as its letter",
+   "A non-ASCII name (\"Éclairage\") draws a broken glyph or comes back to the app as invalid UTF-8 from a rename.",
+   "Cut at a code point (fitLength / snapBack), as Input.onText does; utf8ByteSequenceLength for the first letter.",
+   "read", "fixed", "fitUtf8 (font.zig) cuts at a character boundary: toasts, disabled reasons, window titles, drag labels and hints, log lines, history, rename buffers; the pie letter takes the first whole character. Tests: font.zig \"fitUtf8\", regress_test \"L4\"."],
+  ["L5", "low", "widgets", "Drag kinds longer than 32 bytes never match a drop zone",
+   "src/dnd.zig:106",
+   "setPayload keeps 32 bytes of kind; dropZone compares that with the full string. \"beemodel.outliner.object.reparent\" can never be dropped.",
+   "Compile error or assert on long kinds, or keep a hash of the kind.",
+   "read", "fixed", "The kind is compared by a hash of all of it; it is kept in 64 bytes for dragging(). Test: regress_test \"L5\"."],
+  ["L6", "low", "widgets", "Arrow keys in a tab bar pick disabled tabs",
+   "src/tabs.zig:133, :212",
+   "Drop-downs and segmented controls skip disabled entries (nextEnabled); tab bars don't.",
+   "Use nextEnabled.",
+   "read", "fixed", "Tab bars skip disabled tabs with the arrows. Test: regress_test \"L6\"."],
+  ["L7", "low", "widgets", "frameRange commits on a plain click, and has no Escape",
+   "src/view2d.zig:556",
+   "Every release reports committed, even with no change: empty undo steps in the app. No Escape to put it back, unlike playhead.",
+   "Compare with a backup; report cancelled when unchanged; Escape reverts.",
+   "read", "fixed", "frameRange keeps a backup: Escape puts it back, and a click with no move reports cancelled, not committed. No test of its own yet."],
+  ["L8", "low", "widgets", "A text view's selection drifts in a live log",
+   "src/textview.zig:257-286",
+   "The selection keeps line indices; when LogBuffer drops its oldest lines, the selection moves to other text and Ctrl+C copies the wrong lines.",
+   "Keep absolute line numbers (from total), convert with total - count.",
+   "read", "fixed", "TextViewState.first_line: lines a log dropped shift the selection back onto its text. Test: regress_test \"L8\"."],
+  ["L9", "low", "core", "Two gliding progress bars in one frame glide at double speed",
+   "src/feedback.zig:421 (glide_time += dt per bar drawn)",
+   "progressBar(null) and jobChip(null) together move twice as fast.",
+   "Advance glide_time once per frame.",
+   "read", "fixed", "glide_time moves once a frame. No test of its own."],
+  ["L10", "low", "core", "restoreState can apply half of a state",
+   "src/persist.zig:71",
+   "The dry run catches format errors, but OutOfMemory part way through the real pass leaves part applied, which the docs say can't happen.",
+   "Reserve map capacity before applying.",
+   "suspected", "fixed", "restoreState checks, then reserves the maps and makes the windows, then applies with nothing left to fail. Covered by the save/restore round-trip tests; no allocation-failure test."],
+  ["L11", "low", "render", "Icons bleed into their neighbours in an atlas at scales like 1.25",
+   "backends/software.zig:577 (sampleLinear clamps to the image, not the cell); OpenGL's GL_LINEAR the same",
+   "An empty icon next to a solid one showed 5 pixels of the neighbour, up to alpha 25. (BeeModel's 114 icons are one atlas.)",
+   "Clamp sampling to the cell, or pad the cells.",
+   "reproduced: render (in the review)", "partial", "The software renderer filters only inside the image command's uv rect. Test: software.zig \"L11\". The OpenGL renderer still filters across cells (needs padding or a clamp in the shader)."],
+  ["L12", "low", "render", "addDashedLine can loop forever",
+   "src/draw.zig:483",
+   "at += dash + gap in f32 stops moving past 2^25 (a line longer than ~3e7); dash + gap <= 0 always loops; no cap on the dashes it emits.",
+   "Step with an integer count, cap it, reject dash + gap <= 0.",
+   "reproduced (the f32 stall)", "fixed", "Dashes are counted, capped at 100,000, and NaN or non-positive lengths draw none. Test: regress_test \"L12, L13\"."],
+  ["L13", "low", "render", "fromHsv panics on a NaN or infinite hue",
+   "src/color.zig:47",
+   "@intFromFloat(@floor(NaN)).",
+   "Treat a non-finite hue as 0.",
+   "read", "fixed", "A hue that isn't finite counts as 0. Test: regress_test \"L12, L13\"."],
+  ["L14", "low", "render", "Blending and alpha are inconsistent outside the opaque-framebuffer case",
+   "backends/software.zig:668 (blendByte sets destination alpha 255, no gamma); :524 (the 1:1 copy forces alpha on)",
+   "Wrong over a transparent buffer passed to useBuffer; an is_opaque image with 0x00RRGGBB pixels shows at 1:1 and vanishes when scaled. Borders aren't snapped (1 px at 1.25 is soft; OpenGL matches).",
+   "Document the opaque-target assumption or blend alpha properly; take alpha from the image in the copy too.",
+   "read", "fixed", "Documented on useBuffer: the target is taken to be opaque."],
+  ["L15", "low", "render", "Invalid UTF-8 draws one replacement character per byte",
+   "src/font.zig:300",
+   "A cut-off E2 82 gives two; the usual rule gives one. Measuring and drawing agree, so nothing misaligns.",
+   "Follow the maximal-subpart rule.",
+   "read", "fixed", "A character cut short gives one replacement character; a bad byte still one each. Test: font.zig \"a character cut short\"."],
+  ["L16", "low", "wayland", "Growing the shm pool while a buffer is busy overwrites it",
+   "backends/wayland.zig:635-660",
+   "The new buffer 0 overlaps busy buffer 1 at the old pool_size/2; if ftruncate or mmap fails after the munmap, mem and pool_size point at a dead mapping, unmapped again later.",
+   "Grow only when both buffers are released; reset mem and pool_size on failure.",
+   "read", "fixed", "The pool grows only when neither buffer is busy (the frame waits otherwise); a failure after unmapping leaves no stale mapping. No test of its own."],
+  ["L17", "low", "wayland", "Display.init leaks the socket on errors",
+   "backends/wayland.zig:229-236",
+   "ConnectFailed after socket(), and MissingGlobals.",
+   "errdefer close.",
+   "read", "fixed", "errdefer closes the socket on every error after it is made."],
+  ["L18", "low", "wayland", "Clipboard and drop reads: long stalls and silent truncation",
+   "backends/wayland.zig:1023-1052, :993",
+   "The 1 s limit is per poll, so a slow writer stalls the UI longer; pastes over 64 KB are cut (maybe mid-character); uri lists over 16 KB are cut and the cut last line can be another, real path.",
+   "One overall deadline, a growing buffer, drop a partial last line.",
+   "read", "fixed", "One deadline of a second in all; buffers that grow (16 MB for a paste, 1 MB for a drop); a cut-short paste ends between characters, a cut-short drop keeps only whole lines. Test: wayland.zig \"wholeUtf8\"."],
+  ["L19", "low", "sdl3", "SDL3: horizontal scrolling is reversed",
+   "backends/sdl3.zig (mouse wheel)",
+   "SDL's wheel.x is positive to the right and passed on as it is; Wayland and Win32 negate it.",
+   "Negate x.",
+   "read", "fixed", "SDL3's horizontal wheel is negated like the native backends'. No test (needs SDL)."],
+  ["L20", "low", "win32", "Win32 loses right and middle double-click presses",
+   "backends/win32.zig:194, :378",
+   "CS_DBLCLKS turns them into WM_RBUTTONDBLCLK / WM_MBUTTONDBLCLK, which aren't handled: the press is lost, the release arrives, the capture count goes wrong.",
+   "Handle both messages as presses.",
+   "read", "fixed", "WM_RBUTTONDBLCLK and WM_MBUTTONDBLCLK are presses (click count 2). Compile-checked (Windows build), not run."],
+  ["L21", "low", "files", "File browser: long paths become \"\" or are cut; a typed relative path does nothing",
+   "addons/files.zig:398-402 (join), :420-439 (normalize), :762",
+   "Past 1024 bytes join returns \"\": a save in a deep folder returns .chosen = [\"\"], opening one jumps to /. normalize cuts names and drops components past 128 (a symlink loop gets there). A relative typed path is ignored with no message.",
+   "Bigger or allocated buffers; return an error instead of a cut path; resolve relative paths against the current folder.",
+   "read", "fixed", "Paths up to 4096 bytes (PATH_MAX) everywhere; the multi-select paths live on the heap; a typed path without a leading / goes from the folder shown. Test: files_test \"a path without a leading /\"."],
+  ["L22", "low", "nodes", "Node editor: limits not documented",
+   "addons/nodes.zig",
+   "link() doesn't refuse self-links or cycles (by design: the graph is the app's), and the docs don't say so; distributeSelected stops at 256 nodes without a word.",
+   "Document both; Edit.link could carry the node ids.",
+   "read", "fixed", "Documented on Graph.link and distributeSelected."],
+
+  // ---- performance ----
+  ["P1", "perf", "render", "Translucent fills blend one pixel at a time (a dialog's backdrop: 850 µs)",
+   "backends/software.zig:655-661 (fillSpan → blendByte)",
+   "0.85 ns a pixel: 850 µs for a full 1280×800 backdrop, every frame a modal dialog is open. Also the flat parts of shadows.",
+   "Blend 8 pixels at once with @Vector(8, u32), alpha worked out once a span (blendSpan in the prototype).",
+   "measured: 850 → 70 µs (12×), identical pixels (render/sw2.zig)", "fixed", "Adopted the prototype: translucent spans blend 8 pixels at a time."],
+  ["P2", "perf", "render", "Opaque fills and the frame clear are slow",
+   "backends/software.zig:657, :234 (@memset on []u32)",
+   "About 0.2 ns a pixel.",
+   "Store @Vector(16, u32) in a plain loop.",
+   "measured: full-screen fill 196 → 31 µs, clear 101 → 32 µs, identical pixels", "fixed", "Adopted: opaque fills and the clear store 16 pixels at a time."],
+  ["P3", "perf", "render", "Rounded rects compute a distance for every pixel near their edges",
+   "backends/software.zig:372-392 (Shape.shade: two distances and a square root, ~8 ns a pixel)",
+   "Along the top and bottom away from the corners coverage depends only on the row, along the sides only on the column.",
+   "One alpha per edge row filled as a span; side alphas in a small table reused every row; only the four corners per pixel.",
+   "measured: window 400×500 123 → 31 µs, outline 92 → 14 µs, 40 buttons 750 → 79 µs, identical pixels (also at scale 1.25)", "fixed", "Adopted: edge rows and side columns of rounded rects from small tables; only corners per pixel."],
+  ["P4", "perf", "render", "Shadows compute distance and fade for every pixel down both sides",
+   "backends/software.zig:294-331",
+   "Beside the flat sides coverage depends only on the column.",
+   "Compute those alphas once and reuse them.",
+   "measured: 500×300 dialog shadow 74 → 31 µs; node bench shadows 598 → 304 µs; identical pixels", "fixed", "Adopted: shadow side alphas computed once."],
+  ["P5", "perf", "render", "Triangle fill tests edges again on spans already solved",
+   "backends/software.zig:202-226",
+   "Each row's span is exact, so the per-pixel edge test is redundant.",
+   "Fill flat triangles as spans; step alpha and colour along the row. (Gradients would gain 3-4× more from 8 pixels at a time in floats.)",
+   "measured: flat translucent mesh 300 → 38 µs (identical); gradient 1.04× (within 2/255)", "fixed", "Adopted: triangles filled as solved spans. Bench frame 2267 → ~700 µs; all of BeeModel's deterministic scenario screenshots pixel-identical; gl-check unchanged (max 3/255)."],
+  ["P6", "perf", "render", "Curves are cut into far too many pieces",
+   "src/draw.zig:540 (n = hull / 4, capped at 200)",
+   "A long wire becomes 200 pieces, ~1200 small triangles at ~45 ns setup each: node wires take 5.3 ms of the node bench.",
+   "Wang's formula at 0.2 px tolerance (46 pieces for the same wire).",
+   "measured: 20 wires 1330 → 600 µs (2.2×); ~3 ms off the node bench", "fixed", "Wang's formula at 0.1 units. gl-check unchanged."],
+  ["P7", "perf", "nodes", "The node editor draws every wire twice and clips every pin",
+   "addons/nodes.zig",
+   "Each link is a dark shadow wire plus the wire, each an anti-aliased polyline; each pin is two circles; 3,207 clip commands a frame (one pushClipAbsolute per pin). Wires 5.3 ms and pins 1.2 ms of a 10.5 ms frame.",
+   "At low zoom skip the wire's shadow and use fewer segments (P6); pins as rounded rects; one clip per node.",
+   "measured (backends/nb.zig removes one kind of command at a time)", "partial", "Pins are one rounded rect with a border; the wire's dark edge is skipped below 75 % zoom. Node bench 10.5 → 4.3 ms (with P1-P6). Still a clip push per pin."],
+  ["P8", "perf", "render", "Paths and text outside the clip are still tessellated and looked up",
+   "src/paint.zig:54-115 (line, polyline, bezier, mesh); backends/software.zig:100 (drawPath), :398 (blitText)",
+   "Off-screen node wires and scrolled-away text cost full work.",
+   "Bounding-box test against the clip first; stop a text run when it leaves the clip.",
+   "read", "fixed", "The painter skips lines, dashed lines, polylines, polygons, beziers and meshes whose box is outside the clip. Node bench UI pass 530 → 340 µs. Text runs aren't culled yet."],
+  ["P9", "perf", "core", "Word wrapping is quadratic, and runs twice a frame",
+   "src/overlay.zig:383-402 (wrapText); src/textview.zig wrappedText calls it to count and to draw",
+   "Each line measures the whole rest, then every prefix again. 1k characters 0.85 ms, 4k 5.7 ms, 16k 56.5 ms a frame. (BeeModel's AI transcript and Help, M5.)",
+   "Sum glyph advances once, remember the width at the last space; measure each paragraph once.",
+   "measured: core/perf.zig", "fixed", "One pass per line adding advances and kerning. 16k characters 56.5 → 0.58 ms a frame. Test: overlay.zig \"P9\" (same lines as before, whole UTF-8)."],
+  ["P10", "perf", "widgets", "The command palette describes and re-ranks every command, every frame",
+   "src/menus.zig:544",
+   "interact, drawMarked (which scores again), textSize and a record entry for every ranked command, plus a full re-score and sort a frame. BeeModel's palette has 692 operators (M4).",
+   "Describe only the visible rows, as beginList does; rank again only when the query changes.",
+   "suspected (read)", "partial", "Only the rows in view are described (spacers for the rest), the arrows scroll the pick into view. Test: regress_test \"P10\" (2,000 commands). Ranking still runs every frame."],
+  ["P11", "perf", "widgets", "Text areas wrap their whole text again every frame",
+   "src/textarea.zig (wrap)",
+   "Every visible text area, focused or not, re-wraps per code point with kerning; twice on frames with an edit. Fine for a prompt, costly for long notes (BeeModel's AI prompt, M5).",
+   "Cache line breaks keyed by text hash and width.",
+   "read", "open", "Not done: a cache of line breaks keyed by text and width."],
+  ["P12", "perf", "core", "Window states and per-id maps are never freed; every frame loops over all of them",
+   "src/window.zig:149 (getOrCreate); measures, scroll_states, open_states in src/ui.zig never prune",
+   "A context menu inside pushIdInt(row) makes one window per row, for good (200 one-off popups: 200 windows, 201 measures). windowAt, isFrontmost, compose and record.layerOf walk every window ever made, each frame; with recording on layerOf is entries × windows.",
+   "Free windows (and their measures) not described for K frames; prune the maps the same way; persist keeps what it saves.",
+   "reproduced: core/t.zig", "partial", "Popups and dialogs not described for 300 frames are freed with their measures. Test: regress_test \"P12\". Ordinary windows stay (they keep their place); group measures, scroll and open states are not pruned yet."],
+  ["P13", "perf", "core", "endFrame copies every list into the output",
+   "src/ui.zig:652 (compose)",
+   "The root list and each window's list (text, points, meshes) are copied every frame, detached windows again. Fine at today's sizes.",
+   "Hand the renderer a sequence of lists instead of one merged list (this also gives A3 layers for free).",
+   "read", "open", "Not done; first-class layers (A3) would remove the copy."],
+  ["P14", "perf", "wayland", "Wayland object ids are never reused",
+   "backends/wayland.zig:265, :628 (delete_id ignored)",
+   "Every frame callback takes a new id: the compositor's table for the client grows by one a frame, without end.",
+   "A free list fed by delete_id.",
+   "read", "open", "Not done: reusing ids needs every stored object id cleared on delete_id; low gain."],
+  ["P15", "perf", "render", "OpenGL upload and PNG writer do needless per-pixel / per-byte work",
+   "backends/opengl.zig:276 (a division a pixel when premultiplying); backends/png.zig:63-83 (CRC and Adler a byte at a time)",
+   "Slow image uploads and screenshots.",
+   "Walk rows; table-driven or slice-by-8 CRC, Adler in blocks.",
+   "read", "fixed", "The GL upload walks rows; the PNG writer checksums whole runs (std.hash.Adler32)."],
+  ["P16", "perf", "render", "Icon buttons stretch their icons to the text's height and filter every pixel",
+   "src/widgets.zig (an icon is as tall as a line of text); src/icons.zig draw; backends/software.zig drawImageInto",
+   "A 16-pixel icon in a button was drawn about 18 pixels high: blurred, and through the general sampler (floats, a bilinear sample, a tint) for every pixel. In BeeModel's M9 the 3D viewport's header (12 buttons) took 68 µs to render, most of it icons.",
+   "Keep pixel-art icons at whole multiples of their size; copy a mask drawn at its own size with integer steps.",
+   "measured in BeeModel", "fixed", "IconSet.whole_pixels (opt-in): drawn at the largest whole multiple of the cell that fits, centred. The software renderer blends a mask drawn 1:1 directly (the same pixels). In BeeModel: the viewport header 68 → 14 µs, all its Zui parts 316 → 139 µs a frame. Tests: ui_test \"pixel-art icons keep a whole multiple of their size\", software \"a mask at its own size, in an atlas cell, tinted and half clear\"."],
+
+  // ---- API ----
+  ["A1", "api", "embedding", "No way to ask \"is this point Zui's?\"",
+   "src/ui.zig (wantsKeyboard exists; nothing for the pointer)",
+   "An app that owns its window must know which events to keep for Zui. BeeModel built it itself: rects it claims, Zui's hovered window, its own layers above (zuihost.pointerOwned), and had to work around B1 to get it right.",
+   "ui.wantsPointer(pos): over a shown window, popup or dialog, a widget, a canvas capture or a held widget, from last frame, with closed windows left out.",
+   "found in BeeModel", "fixed", "Ui.wantsPointer(). Test: regress_test \"A1, A5\". BeeModel still uses its own claims (it also knows its own layers)."],
+  ["A2", "api", "embedding", "A new dialog or popup is hidden for its first frame, and nothing says \"settling\"",
+   "src/feedback.zig:139-141, src/overlay.zig:178-180 (sized from last frame's measure)",
+   "An event-driven app must draw again before the dialog shows; a test driver must too before it can click it. redraw_requested means both \"layout settling\" and \"animate\", so a driver can't tell them apart. BeeModel's driver draws until it clears, at most four times.",
+   "ui.layoutSettling() apart from redraw_requested; or measure in a hidden pass so a dialog shows on its first frame.",
+   "found in BeeModel", "fixed", "Ui.layoutSettling(), set only when a measure changed. Test: regress_test \"A2\"."],
+  ["A3", "api", "embedding", "Layers for apps that draw their own UI around Zui's",
+   "src/ui.zig compose; the new DrawList.view / rootView",
+   "BeeModel draws Zui panels inside its own areas, under its own menus: it renders the root commands of each panel early (rootView) and the rest last. It works, but needs the root commands to stay contiguous.",
+   "First-class layers: ui.beginLayer(id) with its own list, returned in order by endFrame (see P13).",
+   "found in BeeModel", "open", "Partly met by DrawList.view / Ui.rootView (M1); first-class layers not done."],
+  ["A4", "api", "widgets", "Labels have no width, alignment or ellipsis",
+   "src/widgets.zig:14-24 (LabelOptions has only color)",
+   "A caption column (the label left, the value right) needs a fixed-width group around a label (BeeModel's bkit.beginCaptioned). Long names in a narrow panel overflow.",
+   "LabelOptions: width, alignment, truncate with an ellipsis (and wrap, which is a known limit).",
+   "found in BeeModel", "fixed", "LabelOptions.width, .alignment, .ellipsis."],
+  ["A5", "api", "layout", "Placing widgets at a given rect takes four calls",
+   "src/ui.zig:925 (beginRegion(id, rect, axis, padding, alignment))",
+   "pushId, id, popId, beginRegion for every positioned widget (BeeModel's zuihost.at).",
+   "ui.beginAt(name, rect) with defaults.",
+   "found in BeeModel", "fixed", "Ui.beginAt(name, rect) / endAt(). Test: regress_test \"A1, A5\"."],
+  ["A6", "api", "widgets", "Button variants need three style pushes",
+   "src/widgets.zig:36-44 (ButtonOptions)",
+   "Primary (the accent), selected, soft and flat buttons each push button, button_hovered and text colours, and pop them.",
+   "ButtonOptions.variant: .normal, .primary, .selected, .flat.",
+   "found in BeeModel", "fixed", "ButtonOptions.variant (.normal, .primary, .selected, .flat); dialogButtons uses .primary. Test: regress_test \"A6, A11\"."],
+  ["A7", "api", "style", "How disabled widgets look can't be chosen",
+   "src/ui.zig:1305 pushDisabled fades through the style",
+   "BeeModel greys by keeping the fill and dimming the text; it has to push colours around every disabled button.",
+   "A style field for disabled text colour and fill (or fade amount per part).",
+   "found in BeeModel", "fixed", "Style.disabled_text_percent and disabled_fill_percent."],
+  ["A8", "api", "widgets", "No secret (password) text field",
+   "src/text_input.zig:17-30",
+   "BeeModel's OpenRouter key field types into a separate empty buffer and shows a hint instead.",
+   "TextInputOptions.secret: draw bullets, never record or copy the text.",
+   "found in BeeModel", "open", "Not done: a secret field touches every caret and selection position in the editor."],
+  ["A9", "api", "widgets", "No read-only virtual list",
+   "src/lists.zig:143 (beginList needs a selection slice)",
+   "Keyboard Shortcuts and the keymap list only show rows; BeeModel windows them by hand (scroll, clip, visible range).",
+   "ui.beginVirtualRows(name, count, row_height) giving the visible range and the scrolling.",
+   "found in BeeModel", "open", "Not done (the palette has its own windowing now, P10)."],
+  ["A10", "api", "core", "Taking the wheel over a rect is done by hand",
+   "src/input.zig",
+   "Apps test the rect and zero input.scroll themselves so nothing else scrolls too.",
+   "ui.takeScroll(rect) ?Vec2.",
+   "found in BeeModel", "fixed", "Ui.takeScroll(rect). Test: regress_test \"A10\"."],
+  ["A11", "api", "widgets", "Dialogs: no fixed size, no scrolling body, no title font, backdrop not in the style, no \"close on a click outside\"",
+   "src/feedback.zig:40-43 (DialogOptions has min_width only)",
+   "BeeModel's Shortcuts needs a fixed list height; its About and History close on a click outside (BeeModel added pressedOutsideDialog); its dialogs dim to half, Zui's backdrop is fixed black at 110.",
+   "DialogOptions: size, max_height with scrolling, close_on_outside; Style: dialog backdrop colour, title font.",
+   "found in BeeModel", "partial", "DialogOptions.close_on_outside; Colors.backdrop (BeeModel sets half black). No fixed size, scrolling body or title font yet."],
+  ["A12", "api", "core", "Escape and Enter have no single owner",
+   "src/feedback.zig:169 (latched in beginDialog), src/overlay.zig, widgets",
+   "Dialogs, popups, fields and drags each decide about Escape and Enter on their own, at different moments: B2 and B3, and this week's Enter fixes (Ui.enter_taken) come from the same place.",
+   "One consumption model: ui.takeKey(.escape) by whoever acts on it first (innermost: drag, field, popup), dialogs decide at endDialog.",
+   "found in BeeModel and the review", "fixed", "Escape: taken by whoever acts on it (removed from keys_pressed); dialogs decide last. Enter: Ui.enter_taken. See B2, B3, F3."],
+  ["A13", "api", "wayland", "Detached windows can't run on an app's own Wayland connection",
+   "backends/wayland.zig (Display owns the socket, registry, id counter, fd queues; openSurface, draw, growPool are private)",
+   "BeeModel keeps its own Wayland client (decision D4) and wants its floating panels in OS windows (M7). Two id allocators on one connection collide; the surface and buffer code can't be reused.",
+   "A ViewportHost on an app-provided wire: newId, request(obj, op, args, fds), the bound globals, handleEvent for Zui's objects, the app's serial for move and resize. Display becomes one user of it.",
+   "read; needed by BeeModel M7", "open", "Not done: a ViewportHost for an app-owned Wayland connection (BeeModel M7)."],
+  ["A14", "api", "render", "Icon sets only from 8-bit masks or ARGB",
+   "src/icons.zig:54-90",
+   "BeeModel's icons are 4-bit masks; it expands them into an alpha8 atlas at start. Minor.",
+   "Accept 4-bit (and 1-bit) masks, or document the expansion.",
+   "found in BeeModel", "open", "Not done (minor)."],
+
+  // ---- fixed this week ----
+  ["F1", "fixed", "core", "A dialog opened in a Ui's first frames didn't focus its default button",
+   "src/feedback.zig (beginDialog: last_frame == 0 counts as just opened)", "", "", "fixed 2026-11-14, test in tests/feedback_test.zig"],
+  ["F2", "fixed", "core", "With nothing focused, Enter didn't press a dialog's default button",
+   "src/feedback.zig (dialogButtons: focused and text_edit.id were both .none)", "", "", "fixed 2026-11-14, test in tests/feedback_test.zig"],
+  ["F3", "fixed", "core", "The Enter that ends typing in a dialog's field also pressed the default button",
+   "src/ui.zig enter_taken; src/text_input.zig; src/textarea.zig; src/feedback.zig", "", "", "fixed 2026-11-14, test in tests/feedback_test.zig"],
+  ["F4", "fixed", "widgets", "A click into a field couldn't select its text (BeeModel's fields do)",
+   "src/text_input.zig TextInputOptions.select_on_click", "", "", "added 2026-11-14, test in tests/ui_test.zig"],
+  ["F5", "fixed", "core", "No way to draw part of a frame early (an app's menus over a Zui panel)",
+   "src/draw.zig DrawList.view; src/ui.zig rootCommandCount, rootView", "", "", "added 2026-11-14, test in src/draw.zig"],
+  ["F6", "fixed", "widgets", "A number field ignored a click whose press and release came in one frame",
+   "src/values.zig", "", "", "fixed in the BeeModel pilot (Phase 27)"],
+  ["F7", "fixed", "core", "wantsKeyboard() was false while a number field was typed into: an app that routes keys by it sent the digits elsewhere",
+   "src/ui.zig wantsKeyboard", "", "", "found in BeeModel's M2 (typing into a Properties field); test in tests/regress_test.zig"],
+  ["F8", "fixed", "widgets", "Text fields: Ctrl+C / Ctrl+X with nothing selected did nothing (TextInputOptions.copy_all takes the whole text)",
+   "src/text_input.zig", "", "", "found in BeeModel's M2, where fields copy the whole text; test in tests/regress_test.zig"],
+  ["A15", "medium", "core", "A modal dialog closed in its own frame (OK, Esc) still counts as shown until the next frame: it takes the next key and pointer event",
+   "src/feedback.zig shown / shown_now", "feedback_state.shown is last frame's; nothing clears shown_now when the app closes the dialog inside its body.",
+   "Clear it when the dialog's open flag goes false before endDialog, or give apps a way to say a dialog closed.",
+   "BeeModel's M2: F3 right after OK on a form went to Zui; zuihost clears shown_now itself for now"],
+  ["A16", "api", "core", "A canvas sees only the frame's last pointer position and each button's edges",
+   "src/input.zig", "A stroke (sculpting, painting), a quick click-drag or a pen's pressure between two frames was lost: the samples in between, the order of a press and a release, a pressure per sample. Found moving BeeModel's 3D viewport onto Zui (M9).",
+   "Keep the frame's pointer events in order.",
+   "found in BeeModel", "fixed", "Input.pointerEvents(): moves, presses, releases and the wheel in order, each with its position, modifiers, clicks and pressure (Input.onPressure); 256 a frame, moves merged when nearly full so every button change stays. Tests: input \"pointer events keep their order, positions and pressure\", \"a full pointer log keeps the last move and every button change\"."],
+  ["A17", "api", "core", "A canvas can only be placed by the layout",
+   "src/canvas.zig", "An app that lays out its own views (BeeModel's areas) had no way to put a canvas at a given rect.",
+   "A rect option.", "found in BeeModel", "fixed", "CanvasOptions.rect. Test: ui_test \"a canvas at a rect of its own, and the pointer's events in order\"."],
+  ["A18", "api", "core", "No hand cursors", "src/ui.zig Cursor",
+   "Dragging an object (BeeModel's tools) shows a closed hand; Zui had none.",
+   "Add them.", "found in BeeModel", "fixed", "Cursor.grab and .grabbing (Wayland's own shapes; Win32 and SDL3 fall back to the link hand and the four arrows)."],
+];
+
+const LABEL = { crash: "crash", high: "bug · high", medium: "bug · medium", low: "bug · low", perf: "performance", api: "API", fixed: "fixed" };
+const ORDER = ["crash", "high", "medium", "perf", "api", "low", "fixed"];
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const codeish = s => esc(s).replace(/((?:[\w\-]+\/)*[\w\-]+\.(?:zig|sh)(?::[\d\-]+(?:, :[\d\-]+)*)?)/g, "<code>$1</code>");
+
+const areas = [...new Set(ITEMS.map(i => i[2]))].sort();
+const areaSel = document.getElementById("area");
+for (const a of areas) areaSel.insertAdjacentHTML("beforeend", `<option>${a}</option>`);
+
+const statusOf = i => i[1] === "fixed" ? "fixed" : (i[8] || "open");
+const sum = document.getElementById("summary");
+const found = ITEMS.filter(i => i[1] !== "fixed");
+const fixedN = found.filter(i => statusOf(i) === "fixed").length;
+const partialN = found.filter(i => statusOf(i) === "partial").length;
+const openBy = k => found.filter(i => i[1] === k && statusOf(i) !== "fixed").length;
+sum.innerHTML = [[found.length, "found in the review"], [fixedN, "fixed"], [partialN, "partly done"],
+  [openBy("crash") + openBy("high") + openBy("medium"), "crashes and high / medium bugs still open"],
+  [openBy("low"), "low bugs still open"], [openBy("perf"), "performance items not fully done"], [openBy("api"), "API gaps not fully done"]]
+  .map(([n, t]) => `<div class="tile"><b>${n}</b><span>${t}</span></div>`).join("");
+
+function render() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const sev = document.getElementById("sev").value;
+  const area = areaSel.value;
+  const status = document.getElementById("status").value;
+  const shown = ITEMS.filter(i => (!sev || i[1] === sev) && (!area || i[2] === area) && (!status || statusOf(i) === status) && (!q || i.join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => ORDER.indexOf(a[1]) - ORDER.indexOf(b[1]));
+  document.getElementById("count").textContent = `${shown.length} of ${ITEMS.length}`;
+  document.getElementById("list").innerHTML = shown.map(i => {
+    const [id, k, area, title, where, what, fix, ev, , done] = i;
+    const stt = statusOf(i);
+    return `
+    <div class="item">
+      <div class="top"><span class="id">${id}</span><span class="t">${esc(title)}</span><span class="area">${area}</span><span class="chip ${k}">${LABEL[k]}</span>${k !== "fixed" ? `<span class="chip st-${stt}">${stt}</span>` : ""}</div>
+      <dl>
+        <dt>Where</dt><dd>${codeish(where)}</dd>
+        ${what ? `<dt>What</dt><dd>${esc(what)}</dd>` : ""}
+        ${fix ? `<dt>Fix</dt><dd>${esc(fix)}</dd>` : ""}
+        <dt>Evidence</dt><dd><span class="ev">${codeish(ev)}</span></dd>
+        ${done ? `<dt>${stt === "fixed" ? "Done" : "So far"}</dt><dd class="done-note">${codeish(done)}</dd>` : ""}
+      </dl>
+    </div>`;
+  }).join("");
+}
+for (const id of ["q", "sev", "area", "status"]) document.getElementById(id).addEventListener("input", render);
+render();
+</script>
+</body>
+</html>

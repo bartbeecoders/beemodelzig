@@ -1,0 +1,15 @@
+.{
+    .name = .beemodel,
+    .version = "0.1.0",
+    .fingerprint = 0x67ec00c033c24c18,
+    .minimum_zig_version = "0.17.1",
+    .dependencies = .{
+        // BeeZigUi (Zui): the UI library, next to this folder.
+        .zui = .{ .path = "../BeeZigUi" },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

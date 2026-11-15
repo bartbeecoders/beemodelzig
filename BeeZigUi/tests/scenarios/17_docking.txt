@@ -1,0 +1,25 @@
+# Docking: split, maximize, swap by dragging a header, float and dock a
+# panel, join by the corner, workspaces as tabs.
+click Outliner > button:split
+expect tab:Modeling exists
+click Console > button:maximize
+expect area:Properties missing
+key ctrl+space
+expect area:Properties exists
+drag Console > custom:header to area:Properties
+right-click Properties > custom:header
+click Area > menu_item:Float Area
+expect window:Properties exists
+click Properties > button:dock
+expect window:Properties missing
+key f6
+key f6
+click tab:Animation
+expect area:Timeline exists
+double-click tab:Shading
+key ctrl+a
+type Look Dev
+key enter
+expect tab:Look Dev exists
+click tab:Modeling
+shot zig-out/scenarios/17_docking.png

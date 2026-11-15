@@ -1,0 +1,16 @@
+# Keyboard only: Tab through widgets, toggle, step a slider, press a button.
+key tab
+expect text_input:Project name focused
+key tab
+expect checkbox:Save automatically focused
+key space
+expect checkbox:Save automatically = false
+key tab
+key tab
+expect slider:Interval, minutes (i32) focused
+key right
+key right
+expect slider:Interval, minutes (i32) = 7
+key shift+tab
+expect checkbox:Keep backups focused
+shot zig-out/scenarios/08_keyboard.png

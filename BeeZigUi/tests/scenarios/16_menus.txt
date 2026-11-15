@@ -1,0 +1,34 @@
+# Menus: the mouse across the bar, submenus, the keyboard, a context
+# menu, F3 search, and a remapped shortcut.
+click menu:File
+hover menu:Add
+hover menu:Mesh
+hover Add > menu:Mesh
+click Mesh > menu_item:Torus
+expect label:Mesh: Torus exists
+key f10
+key down
+key down
+key right
+key enter
+expect label:Open Recent: chair.bee exists
+right-click canvas:viewport
+expect Viewport menu > menu_item:Delete disabled
+click Viewport menu > menu_item:Frame Selected
+expect label:Frame Selected exists
+key f3
+type lc
+expect command:Loop Cut and Slide exists
+shot zig-out/scenarios/16_palette.png
+key escape
+click shortcut:Toggle grid
+key ctrl+g
+expect shortcut:Toggle grid = Ctrl+G
+click menu:View
+expect menu_item:Ground Grid = true
+key escape
+key ctrl+g
+click menu:View
+expect menu_item:Ground Grid = false
+hover menu_item:Statistics
+shot zig-out/scenarios/16_menus.png

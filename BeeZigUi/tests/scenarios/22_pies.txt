@@ -1,0 +1,36 @@
+# Pies: a tap does the key's own job, a hold and flick picks, a click
+# picks; the wheel: arcs, number keys, greyed entries, Esc.
+move 500 380
+key z
+expect label:Z tapped: X-ray on exists
+hold z
+move 500 250
+release z
+expect label:Shading: Material exists
+hold ctrl+tab
+click pie_item:Edit Mode
+release ctrl+tab
+expect label:Edit Mode exists
+hold shift+s
+expect pie_item:Selection to Grid exists
+key escape
+release shift+s
+expect pie:Snap missing
+right-click canvas:viewport
+click pie_item:Add
+expect pie_item:Add = open
+click pie_item:Sphere
+expect label:Add: Sphere exists
+right-click canvas:viewport
+key 2
+key 3
+expect label:Transform: Scale exists
+right-click canvas:viewport
+hover pie_item:Parent
+expect pie_item:Parent = Select two objects first
+click pie_item:Parent
+expect pie:Context exists
+hover pie_item:Transform
+shot zig-out/scenarios/22_pies.png
+key escape
+expect label:Wheel closed exists

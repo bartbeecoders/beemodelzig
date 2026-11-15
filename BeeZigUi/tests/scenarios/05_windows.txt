@@ -1,0 +1,15 @@
+# Windows: click inside, switch theme, move, add lines, close.
+click Counter > button:Click me
+click Counter > button:Click me
+expect Counter > label:Clicked 2 times exists
+click Settings > button:Light
+drag window:Log by -300 -120
+click Log > button:Add 10 lines
+# Scrolled out of view means not listed.
+expect Log > label:0000  frame event, nothing to worry about exists
+scroll window:Log -30
+expect Log > label:0000  frame event, nothing to worry about missing
+expect Log > button:Add 10 lines missing
+click Settings > window_button:Close
+expect window:Settings missing
+shot zig-out/scenarios/05_windows.png

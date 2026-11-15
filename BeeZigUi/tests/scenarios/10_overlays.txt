@@ -1,0 +1,11 @@
+# Overlays: a tooltip after a wait, a popup menu, a color popup.
+hover button:Hover me
+wait 0.8
+expect tooltip:A tooltip appears after half a second. exists
+shot zig-out/scenarios/10_tooltip.png
+click button:Actions...
+click actions > button:Duplicate
+expect button:Duplicate missing
+click color_edit:Fill, with alpha
+frames 3
+shot zig-out/scenarios/10_color_popup.png

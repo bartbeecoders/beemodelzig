@@ -1,0 +1,11 @@
+# Containers: a tree, a list in a scroll area, a sortable table.
+click tree_node:assets
+expect tree_node:assets = open
+click selectable:Red
+expect label:Picked: Red exists
+scroll scroll_area:colors -3
+click table_header:Size
+expect table_header:Size = ascending
+click table_header:Size
+expect table_header:Size = descending
+shot zig-out/scenarios/11_containers.png

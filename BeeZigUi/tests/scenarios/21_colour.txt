@@ -1,0 +1,36 @@
+# The colour picker: square, hue, hex, old colour, RGB and HSV, swatches,
+# recent colours, the eyedropper and the swatch menu; themes and contrast.
+click color_edit:Base Color
+expect swatch:Old = #C8C8C8
+drag color_area:Hue by 0 30
+drag color_area:Saturation and value to 90% 10%
+expect color_area:Saturation and value = 90% 90%
+click swatch:Old
+expect color_edit:Base Color = #C8C8C8
+click text_input:Hex
+key ctrl+a
+type 3c9a5f
+key enter
+expect color_edit:Base Color = #3C9A5F
+click segment:HSV
+expect number:H = 142.3°
+key escape
+# Recent colours remember the hex just typed.
+click color_edit:Emission
+click swatch:#3C9A5F
+expect color_edit:Emission = #3C9A5F
+key escape
+# The eyedropper reads Base Color's swatch off the screen; the click is
+# its own and doesn't open that swatch's picker.
+click button:eyedropper
+click color_edit:Base Color
+expect swatch:New = #3C9A5F
+expect swatch:Old = #4C8DF0
+expect color_edit:Light Color = #FFE7C2
+right-click color_edit:Light Color
+click menu_item:Reset
+expect color_edit:Light Color = #FFFFFF
+click theme:Paper
+expect theme:Paper = true
+expect label:Contrast: every text is at least 4.5:1 exists
+shot zig-out/scenarios/21_colour.png

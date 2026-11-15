@@ -1,0 +1,74 @@
+// BeeModel (Zig port) - the viewport rasterizer's last stage on the GPU
+// (beemodel-gpu), the original's raster.comp brought to gfx.zig's Canvas.triangle.
+//
+// src/gpuraster.zig collects the frame's screen-space triangles and bins them into
+// 16 x 16 tiles on the CPU; here one workgroup is a tile and one invocation a
+// pixel, walking its tile's triangles in submission order with triangle()'s
+// arithmetic: the same bounds, the weights from the row's start plus whole steps,
+// 1/z from them, a strictly nearer test. Every pixel belongs to one invocation,
+// so the buffers come out as the CPU's.
+#version 450
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std430, binding = 0) readonly buffer Params {
+    uint w, h, ntx, mode;           // the region; tiles a row; (kept 0)
+    int ox, oy, pad0, pad1;         // the region in the canvas
+} P;
+layout(std430, binding = 1) readonly buffer Tris { float tris[]; };  // x y 1/z x3, colour, id, -
+layout(std430, binding = 2) readonly buffer Toff { uint toff[]; };   // tiles + 1
+layout(std430, binding = 3) readonly buffer Ents { uint ents[]; };
+layout(std430, binding = 4) buffer Depth { float depth[]; };         // w h, the canvas's
+layout(std430, binding = 5) buffer Ids { uint ids[]; };
+layout(std430, binding = 6) buffer Vis { uint vis[]; };              // record + 1
+layout(std430, binding = 7) buffer Col { uint col[]; };              // XRGB, w h
+
+void main() {
+    uint tile = gl_WorkGroupID.y * P.ntx + gl_WorkGroupID.x;
+    int tx = int(gl_WorkGroupID.x) * 16 + int(gl_LocalInvocationID.x);
+    int ty = int(gl_WorkGroupID.y) * 16 + int(gl_LocalInvocationID.y);
+    if (tx >= int(P.w) || ty >= int(P.h)) return;
+    uint pix = uint(ty) * P.w + uint(tx);
+    int px = tx + P.ox, py = ty + P.oy;     // canvas pixels, as the triangles are
+    float dz = depth[pix];
+    uint id = ids[pix], vi = 0u, c = col[pix];
+    float fclipx0 = float(P.ox), fclipy0 = float(P.oy);
+    float fclipx1 = float(P.ox + int(P.w) - 1), fclipy1 = float(P.oy + int(P.h) - 1);
+    uint e0 = toff[tile], e1 = toff[tile + 1u];
+    for (uint e = e0; e < e1; e++) {
+        uint r = ents[e];
+        uint o = r * 12u;
+        float x0 = tris[o], y0 = tris[o + 1u], z0 = tris[o + 2u];
+        float x1 = tris[o + 3u], y1 = tris[o + 4u], z1 = tris[o + 5u];
+        float x2 = tris[o + 6u], y2 = tris[o + 7u], z2 = tris[o + 8u];
+        float minx = max(fclipx0, floor(min(x0, min(x1, x2))));
+        float maxx = min(fclipx1, ceil(max(x0, max(x1, x2))));
+        float miny = max(fclipy0, floor(min(y0, min(y1, y2))));
+        float maxy = min(fclipy1, ceil(max(y0, max(y1, y2))));
+        if (minx > maxx || miny > maxy) continue;
+        if (float(px) < minx || float(px) > maxx || float(py) < miny || float(py) > maxy) continue;
+        precise float area = (x1 - x0) * (y2 - y0) - (y1 - y0) * (x2 - x0);
+        if (abs(area) < 1.0e-6) continue;
+        float inv = 1.0 / area;
+        precise float a0 = (y1 - y2) * inv;
+        precise float a1 = (y2 - y0) * inv;
+        precise float fx0 = minx + 0.5;
+        precise float fy = float(py) + 0.5;
+        precise float w0 = ((x1 - fx0) * (y2 - fy) - (y1 - fy) * (x2 - fx0)) * inv;
+        precise float w1 = ((x2 - fx0) * (y0 - fy) - (y2 - fy) * (x0 - fx0)) * inv;
+        int k = px - int(minx);
+        for (int s = 0; s < k; s++) { w0 = w0 + a0; w1 = w1 + a1; }
+        precise float w2 = 1.0 - w0 - w1;
+        if (!(w0 >= 0.0 && w1 >= 0.0 && w2 >= 0.0)) continue;
+        precise float iz = w0 * z0 + w1 * z1 + w2 * z2;
+        if (!(iz > dz)) continue;
+        dz = iz;
+        id = floatBitsToUint(tris[o + 10u]);
+        vi = r + 1u;
+        c = floatBitsToUint(tris[o + 9u]);
+    }
+    depth[pix] = dz;
+    ids[pix] = id;
+    vis[pix] = vi;
+    col[pix] = c;
+}

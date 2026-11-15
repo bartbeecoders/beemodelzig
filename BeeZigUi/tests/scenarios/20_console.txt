@@ -1,0 +1,22 @@
+# Console: completion, history, a long log that follows the bottom,
+# selection and copy; the chat prompt.
+click text_input:command
+type view.c
+key tab
+expect text_input:command = view.camera
+key enter
+expect text_line:Done: view.camera exists
+type nope
+key enter
+expect text_line:Unknown command "nope". Try help, or Tab to complete. exists
+key up
+key up
+expect text_input:command = view.camera
+click button:Add 100,000 lines
+expect text_line:Frame 99999: 1275 samples, 12.71 ms exists
+click text_area:prompt
+type How many objects?
+key enter
+expect text_line:How many objects? exists
+double-click text_line:The scene has 3 objects. The chair has four legs, which share one material.
+shot zig-out/scenarios/20_console.png

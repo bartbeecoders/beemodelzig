@@ -1,0 +1,17 @@
+# Text input: type, submit, select all and replace, undo.
+click text_input:Search
+type zig ui
+expect text_input:Search = zig ui
+key enter
+expect label:Last submitted: zig ui exists
+click text_input:Name
+key ctrl+a
+type Grace Hopper
+expect text_input:Name = Grace Hopper
+key ctrl+z
+expect text_input:Name = Ada Lovelace
+click Notes > text_input:note
+key end
+type , edited
+expect Notes > text_input:note = Inside a window, edited
+shot zig-out/scenarios/07_text_input.png

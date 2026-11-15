@@ -1,0 +1,30 @@
+# Nodes: link, take a link off, a wire into empty space asks what to add,
+# select and move, delete, a reroute knot, the palette, the frame.
+frames 10
+drag pin:Noise Texture.Fac to pin:Mix Color.Factor
+expect link:Fac -> Factor exists
+expect number:Factor missing
+drag pin:Mix Color.A by 0 160
+expect link:Color -> A missing
+drag pin:Image Texture.Alpha by 140 230
+expect text_input:Search focused
+type emis
+key enter
+expect node:Emission exists
+expect link:Alpha -> Color exists
+click node:Material Output
+expect node:Material Output = selected
+drag node:Material Output by 40 60
+key x
+expect node:Material Output missing
+double-click link:Result -> Base Color
+expect link:Result -> in exists
+expect link:out -> Base Color exists
+drag button:Normal Map to view:material
+expect node:Normal Map exists
+double-click node_frame:Textures
+key end
+type  (UV)
+key enter
+expect node_frame:Textures (UV) exists
+shot zig-out/scenarios/24_nodes.png

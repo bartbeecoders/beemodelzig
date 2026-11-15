@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zui Plan</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --text: #1d1f23; --muted: #62666f; --line: #e2e2dd;
+  --accent: #2f5fc4; --done: #2c8a50; --doing: #b9770e; --todo: #9a9ea8; --code: #efefeb;
+  --warn-bg: #fdf4e3; --warn-line: #e9c987;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17181b; --panel: #1f2125; --text: #e6e7ea; --muted: #9a9ea8; --line: #30333a;
+    --accent: #7ea6f5; --done: #54c17f; --doing: #e6ac4d; --todo: #6b7080; --code: #2a2d33;
+    --warn-bg: #2e2717; --warn-line: #6a5526;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 40px 16px 80px; }
+h1 { font-size: 32px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 20px; margin: 44px 0 12px; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+code, pre { font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace; font-size: 0.88em; }
+code { background: var(--code); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+
+.summary { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.summary-top { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-weight: 600; }
+.summary-top span:last-child { color: var(--muted); font-weight: 400; }
+.bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 10px; }
+.bar > i { display: block; height: 100%; background: var(--done); }
+
+.phase { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; }
+.phase summary { list-style: none; cursor: pointer; padding: 13px 16px; display: flex; gap: 12px; align-items: center; }
+.phase summary::-webkit-details-marker { display: none; }
+.num { color: var(--muted); font-variant-numeric: tabular-nums; width: 2.2em; flex: none; font-size: 0.9em; }
+.ptitle { font-weight: 600; flex: 1; min-width: 0; }
+.count { color: var(--muted); font-size: 0.85em; font-variant-numeric: tabular-nums; flex: none; }
+.pill { font-size: 0.75em; font-weight: 600; padding: 1px 9px; border-radius: 999px; border: 1px solid currentColor; flex: none; }
+.pill.done { color: var(--done); } .pill.doing { color: var(--doing); } .pill.todo { color: var(--todo); }
+.body { padding: 0 16px 16px 16px; border-top: 1px solid var(--line); }
+.body h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 16px 0 6px; }
+.goal { margin: 12px 0 0; }
+ul.tasks { list-style: none; margin: 0; padding: 0; }
+ul.tasks li { padding: 2px 0 2px 24px; position: relative; }
+ul.tasks li::before { position: absolute; left: 2px; font-weight: 700; }
+ul.tasks li.done::before { content: "✓"; color: var(--done); }
+ul.tasks li.doing::before { content: "●"; color: var(--doing); }
+ul.tasks li.todo::before { content: "○"; color: var(--todo); }
+ul.plain { margin: 0; padding-left: 20px; }
+.cmd { display: flex; gap: 8px; align-items: center; background: var(--code); border-radius: 6px; padding: 6px 10px; margin: 4px 0; }
+.cmd code { background: none; padding: 0; flex: 1; }
+button { font: inherit; font-size: 0.8em; color: var(--text); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 5px; padding: 2px 8px; cursor: pointer; }
+.review { display: flex; gap: 8px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.review input { width: 16px; height: 16px; margin: 0; }
+.reviewed { color: var(--done); font-size: 0.85em; flex: none; }
+
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+tr:last-child td { border-bottom: none; }
+.note { background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 12px 16px; }
+.note ul { margin: 6px 0 0; padding-left: 20px; }
+.uses { color: var(--muted); font-size: 0.92em; margin: 6px 0 0; }
+.uses b { color: var(--text); font-weight: 600; }
+.chip { display: inline-block; font-size: 0.75em; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.chip.have { color: var(--done); } .chip.part { color: var(--doing); } .chip.none { color: var(--todo); }
+td.where { color: var(--muted); font-size: 0.92em; }
+td.ph { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tally { display: flex; gap: 14px; flex-wrap: wrap; margin: 0 0 12px; color: var(--muted); font-size: 0.92em; }
+@media (max-width: 640px) { td.where { display: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Zui plan</h1>
+  <p class="sub">An immediate-mode UI library in pure Zig. Phases, demos and status. Target: Zig 0.17.1.</p>
+
+  <div class="summary">
+    <div class="summary-top"><span id="current"></span><span id="totals"></span></div>
+    <div class="bar"><i id="fill"></i></div>
+  </div>
+
+  <h2>Phases</h2>
+  <p class="sub" style="margin-bottom:12px">Each phase ends in something you can run. Tick “Reviewed” once you have looked at it; ticks are saved in this browser.</p>
+  <div id="phases"></div>
+
+  <h2>BeeModel coverage</h2>
+  <p class="sub" style="margin-bottom:12px">Phases 13 to 27 are planned from an analysis of <code>beemodel-zip</code>, the Zig port of BeeModel. It is about 72,000 lines and draws its own immediate-mode UI (<code>ui.zig</code>, <code>app.zig</code>, <code>menus.zig</code>, <code>pies.zig</code>, <code>editors.zig</code>, <code>filebrowser.zig</code>, <code>colorpick.zig</code> and others). The analysis also used the original's <code>docs/UI.md</code>, which describes the editors the port has not reached yet. Each row is a kind of UI element BeeModel needs, where BeeModel uses it, how far Zui covers it today, and the phase that closes the gap.</p>
+  <div class="tally" id="tally"></div>
+  <table>
+    <thead><tr><th>UI element</th><th>Where BeeModel uses it</th><th>Zui now</th><th>Phase</th></tr></thead>
+    <tbody id="beemodel"></tbody>
+  </table>
+  <div class="note" style="margin-top:12px">
+    <b>Stays in BeeModel, not Zui:</b> the 3D rasterizer, path tracer and everything drawn inside the viewport (gizmo logic, overlays, sculpt cursors), the operator catalog and its 692 commands, keymap contents and presets, modal G / R / S, and the scene data itself. Zui supplies the widgets and mechanisms; BeeModel supplies the content.
+  </div>
+
+  <h2>Decisions to confirm</h2>
+  <table>
+    <thead><tr><th>Decision</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Backend before widgets</td><td>The spec puts the backend at step 6. It moved to Phase 1 so that every later step has a demo you can run.</td></tr>
+      <tr><td>Software rasterizer + SDL3 window</td><td>The rasterizer is pure Zig. SDL3 is the single C dependency, isolated in <code>backends/sdl3.zig</code>, and it covers Linux, Windows and macOS with one backend.</td></tr>
+      <tr><td>Pure-Zig TrueType, no FreeType</td><td>Keeps the core free of C. No kerning or hinting at first; see Known limits.</td></tr>
+      <tr><td>Widgets don't return errors</td><td><code>try ui.button(...)</code> on every line is noise. The first allocation failure is latched and returned by <code>ui.endFrame()</code>.</td></tr>
+      <tr><td>Zig 0.17.1 only</td><td>The spec says 0.13+, but <code>std.Io</code>, the build API and the language all changed since then. Supporting both isn't practical.</td></tr>
+      <tr><td>Library at the project root</td><td>The spec shows a <code>zui/</code> folder. The <code>beezigui</code> project root plays that role.</td></tr>
+      <tr><td>One frame of layout memory</td><td>Groups remember last frame’s size, so <code>grow</code> and alignment settle one frame after a change. The library asks for that extra frame itself.</td></tr>
+      <tr><td>Presses are tested where they happened</td><td>Several events can arrive between frames. Testing the press position, not the current one, fixed fast drags that live testing showed failing.</td></tr>
+      <tr><td>Text input edits your buffer</td><td><code>ui.textInput(name, &amp;buffer, &amp;len, .{})</code>: the caller owns a byte buffer and its length, so editing never allocates. Only undo history and pastes use memory.</td></tr>
+      <tr><td>Key presses keep their order</td><td>Input records each key with how much text had been typed at that moment, so typing, Backspace and typing again within one frame replay correctly.</td></tr>
+      <tr><td>Focus ring only after keyboard use</td><td>Clicking a widget focuses it so Tab continues from there, but the ring shows only once Tab has been pressed, like a browser's <code>:focus-visible</code>. Custom widgets join the tab order with <code>ui.focusable(id, &amp;result)</code>.</td></tr>
+      <tr><td>Escape undoes</td><td>In a text field Escape restores the text from when it got focus; during a slider drag it restores the old value.</td></tr>
+      <tr><td>Overrides save the whole style</td><td><code>pushColor(.button, c)</code>, <code>pushMetric(.rounding, 0)</code> and <code>pushStyle(.light)</code> each save the full style; <code>popStyle</code> restores it. Nothing can leak past a pop, and field names and value types are checked at compile time.</td></tr>
+      <tr><td>Popups are windows</td><td>A popup is a window with no title bar, kept above ordinary windows. It gets the same hit testing, so a click on it never reaches what is underneath. It sizes itself to last frame's content and is hidden on its first frame until that size is known.</td></tr>
+      <tr><td>The showcase has its own main loop</td><td>Phase demos share a harness; <code>examples/demo</code> doesn't, so it doubles as the reference for wiring Zui into an app, and it builds as a separate package against Zui by path.</td></tr>
+      <tr><td>Embedded font: Liberation Sans</td><td>SIL OFL, licence included next to it. About 410 KB, only linked if you use it.</td></tr>
+      <tr><td>Anti-aliasing by a fringe, shared by both renderers</td><td>Lines and polygons are turned into triangles with a one-pixel band fading to transparent (<code>zui.tessellate</code>). A renderer only fills triangles with blended colours, so software and OpenGL draw the same edges, and a new backend gets anti-aliasing for free.</td></tr>
+      <tr><td>Images are the app's pixels, cached by id and version</td><td>No upload API: the app owns the pixels, the software renderer reads them directly, and the GL renderer re-uploads only when <code>image.touch()</code> bumped the version. A 3D viewport rendered on the CPU every frame costs one copy.</td></tr>
+      <tr><td>Shadows skip what covers them</td><td>Benchmarking Phase 13 showed the Phase 12 window shadows cost about 0.65 ms of a 2.7 ms frame, mostly filling the area under each window. A shadow now knows the opaque shape above it and skips that area, and fades its straight edges a row at a time: 2.3 ms. The UI pass grew from 21 to 31 µs with kerning and the new features.</td></tr>
+      <tr><td>Scripts name widgets, never coordinates</td><td>A script says <code>click Tools &gt; button:Save</code>, and the player looks the widget up in the last frame's record, waits for it if it isn't shown yet, and clicks a point of it that no window in front covers. Layout changes don't break scripts, and a covered widget is reported instead of clicking whatever is on top.</td></tr>
+      <tr><td>Hidden means not listed</td><td>The record holds only what can be seen: clipped to its scroll area or window, nothing in a popup's invisible first frame, nothing scrolled away. An agent reading it sees what a person sees.</td></tr>
+      <tr><td>The dock layout is the app's data</td><td><code>zui.Dock</code> is a fixed-size tree the app owns and copies freely: one per workspace, saved in its own files. Zui lays it out, draws headers and handles drags; the app draws each editor. A new or closed area is reported, so the app keeps per-area state (a viewport's camera) itself.</td></tr>
+      <tr><td>Scripts wait for the layout to settle</td><td>Layout uses the previous frame's sizes, so a new panel moves for a frame. The script player now runs frames while the UI asks for one before looking a widget up, as the window loop would; this fixed clicks landing where a button had been a frame earlier.</td></tr>
+      <tr><td>A modal dialog is the front window that takes every position</td><td>Hit testing already walks windows front to back; a dialog shown last frame simply answers for every point, so nothing behind it can be hovered or pressed, custom widgets included. Its scope keeps Tab inside for the whole frame.</td></tr>
+      <tr><td>Fixed: filling rows could only grow</td><td>A group's natural size counted the space its fill items had stretched into, so a <code>.fill</code> row never gave it back and an item after a spacer stayed pushed out of view (found with the status bar's job chip). Groups now ask only for what their content needs.</td></tr>
+      <tr><td>Selection is a slice of bools the app owns</td><td>One bool per row, kept up to date by the list: fast for thousands of rows, trivially saved or tested, and the app's own code (delete, reparent) reads it directly. The anchor, cursor and rename text live in a small <code>ListState</code> per list.</td></tr>
+      <tr><td>Drop targets ask, Zui shows</td><td>A drop zone only reports the drag over it; the app decides, says why with <code>dropHint</code> or <code>refuseDrop</code>, and acts on <code>released</code>. Zui draws the highlight, the label at the pointer and the pointer shape, so every list and canvas drags alike.</td></tr>
+      <tr><td>Logs are fixed memory, views are virtual</td><td><code>LogBuffer</code> allocates once and drops its oldest lines; a text view takes any source with <code>len</code> and <code>line</code>, draws only the lines in view, and tells the scroll area the exact height. 100,000 lines cost what a screenful does.</td></tr>
+      <tr><td>Fixed while building lists and text</td><td><code>setFocus</code> during a press no longer loses to the press; a field that only uses <code>editField</code> must still call <code>focusable</code> to keep its focus (rename in rows); the Tab scope is set for the next frame, so a dialog or the active area keeps Tab from the first widget on.</td></tr>
+      <tr><td>Fixed: filling across could only grow</td><td>The twin of the Phase 18 fix, on the other axis: a group's width counted what its <code>.fill</code> children had been stretched to, so a column that was ever wide stayed wide (found with the colour picker in a 290-unit column). Layouts now also measure the natural cross size, and groups ask for that.</td></tr>
+      <tr><td>The eyedropper asks the backend for one pixel</td><td>Zui can't read the screen, and shouldn't: while the eyedropper is out, <code>ui.sample_request</code> names a point, and the backend reads that pixel after rendering (<code>pixelAt</code> in both renderers) and passes it to <code>input.onColorSample</code>. The demo harness does it; scripts too. The click that takes the colour reaches no widget.</td></tr>
+      <tr><td>UI scale is the UI's own zoom</td><td><code>ui.setScale(1.5)</code> divides the window into fewer, bigger units and multiplies the renderer's scale (<code>ui.renderFrame(display_scale)</code>), so text is rasterized at the new size. Input positions are divided by <code>input.unit_scale</code>; scripts and the record stay in UI units, so they work at any scale.</td></tr>
+      <tr><td>Themes keep their contrast as they are built</td><td><code>theme.build</code> takes a background, text and accent and derives the rest, moving each colour just far enough to keep 4.5:1 for text and 3:1 for marks; text on the accent is black or white. <code>contrastProblems</code> checks any style; a test runs it over every preset.</td></tr>
+      <tr><td>Pies and the wheel own the input while open</td><td>Every press, key and the wheel go to the menu, and nothing behind it hovers; a quick tap of the opening key reports <code>.tapped</code>, so Z can still toggle X-ray. Key releases are new in <code>Input</code> (<code>keys_down</code>, <code>keys_released</code>), with <code>hold</code> and <code>release</code> in scripts.</td></tr>
+      <tr><td>2D views: the app keeps where it looks</td><td>A <code>View2D</code> (origin and zoom per axis) belongs to the app, like the dock layout. The view follows its fit until the user pans or zooms. Handles are described before the background claims the press, so they win, and report a world-unit delta so all selected keys move together; Escape reports the way back.</td></tr>
+      <tr><td>The node editor reports edits; the graph stays the app's</td><td><code>zui_nodes</code> draws and handles nodes, pins, wires, knots and frames, and returns a list of edits (move, select, link, unlink, add, reroute, delete, copy, paste, commit). Nodes are zoomed by drawing them in <code>Style.scaled(zoom)</code>, so text stays sharp. An input shows its field by last frame's links; the editor asks for one more frame when they change.</td></tr>
+      <tr><td>The file browser reads through a Source</td><td><code>zui_files</code> lists and reads through a small interface: <code>DiskSource</code> for <code>std.Io</code>, or anything else (tests use a fake tree). Previews decode PNG with <code>std.compress.flate</code>; the app supplies thumbnails for its own types and an options panel. Free space comes from <code>statfs</code> on Linux.</td></tr>
+      <tr><td>Add-ons use only the public API</td><td>Both add-ons build as their own modules on <code>zui</code>, cross-compile for Windows and macOS, and needed only three small public additions: <code>Style.scaled</code>, <code>Ui.regionSize</code> and a compact <code>colorEdit</code>.</td></tr>
+      <tr><td>Native backends speak the protocols themselves</td><td>The Wayland backend is the wire protocol over a socket with raw syscalls, as BeeModel's is (its design, made a self-contained struct); the Win32 one declares its few system functions itself. No libc, libwayland or libxkbcommon: the demo is one static binary. SDL3 stays for macOS and for apps that want it.</td></tr>
+      <tr><td>Keys follow the layout, from the keymap</td><td>The keyboard layout comes from the compositor's XKB keymap: text with dead keys and AltGr, and Zui keys by the character a key types, so shortcuts follow the label on the key. Trying it live showed why it must be the keymap and not the key's position: a virtual keyboard (wtype) puts letters where Escape normally is, and writes raw keysyms (0xff09 for Tab).</td></tr>
+      <tr><td>The window frame is a widget; the system moves the window</td><td><code>ui.clientFrame</code> draws the title bar and returns what was asked (move, resize which edges, minimize, maximize, close). Moving and resizing are the compositor's job and need the press that started them, so the backend carries the action out.</td></tr>
+      <tr><td>A detached window is a viewport</td><td>A window with <code>.detached = true</code> is drawn into a list of its own at its own (0, 0), with its popups and, while the pointer is in it, tooltips. Hit testing only looks at windows in the OS window the pointer is in (<code>input.viewport</code>), and Tab only at those in the one with the keyboard. Backends open and close OS windows to match <code>ui.viewports()</code>.</td></tr>
+      <tr><td>Fixed: the native loop drew without end</td><td>Each present asks the compositor for a frame callback, and that callback counted as an event: a loop of frames at the screen's rate. Only input, a new size or scale wake the UI now; a present the compositor wasn't ready for is drawn once more, without the input's settling frames.</td></tr>
+      <tr><td>Embedding draws into the app's own pixels</td><td><code>SoftwareRenderer.useBuffer</code> with <code>clear = false</code> draws Zui over what the app drew, in its buffer, with no copy. That is how the BeeModel pilot works: its canvas, its events, its draw pass.</td></tr>
+      <tr><td>The BeeModel pilot: one dialog, behind a flag</td><td>BeeModel's Preferences are Zui's with <code>-Dzui=true</code>: same place, colours, font and sizes; same widget names in BeeModel's own record, so its 315 scenarios and its fuzzers pass unchanged. Without the flag nothing of Zui is built. Two Zui fixes came from it: a click inside one frame on a number field, and left-aligned button text.</td></tr>
+      <tr><td>Proposed: Zui supplies mechanisms, BeeModel supplies content</td><td>Menus, the palette, pies, docking and themes are generic. BeeModel's operator catalog, keymap presets, theme palettes and editor logic stay in BeeModel and feed them. This keeps Zui usable by other apps.</td></tr>
+      <tr><td>Proposed: the app owns the data</td><td>Lists, trees, the outliner and node graphs read the app's data each frame and report edits (selected, renamed, moved, linked). Zui never stores a copy of the scene. This is how BeeModel works today.</td></tr>
+      <tr><td>Proposed: widget record comes early (Phase 14)</td><td>BeeModel's 47 scenarios, its fuzzers and its MCP <code>ui_tree</code> tool drive the UI by widget name. If Zui has this before the big widget phases, every later phase is tested the same way.</td></tr>
+      <tr><td>Proposed: big widgets as add-on modules</td><td>The node editor (<code>zui_nodes</code>) and the file browser (<code>zui_files</code>) use only Zui's public API. That proves the API is enough and keeps the core small. Docking lives in the core because it touches hit testing and window order.</td></tr>
+      <tr><td>Proposed: native backends late (Phase 26)</td><td>BeeModel already owns its window through its own Wayland code. It can feed Zui's input and show the software renderer's pixels from the first phase on, the way <code>render_png</code> uses Zui without a window. A native Wayland backend in Zui is only needed for other apps.</td></tr>
+      <tr><td>Undo works from commits, not snapshots at start</td><td>A widget changes the value in the same frame it reports <code>started</code>, so an app can't copy the state "before" at that moment. Instead it keeps a copy as of the last <code>committed</code> and pushes that copy at the next one. <code>started</code> remains for previews; <code>cancelled</code> means the widget already put the value back.</td></tr>
+      <tr><td>Disabled is a scope, not a widget option</td><td><code>pushDisabled(reason)</code> covers any number of widgets, custom ones included, with one reason. It fades through the style, so new widgets need no code for it; a null reason keeps the call unconditional.</td></tr>
+      <tr><td>Proposed: one undo step per edit</td><td>BeeModel's rule is that a drag, a typed value or a toggle is one undo step. Every value widget therefore reports started / changed / committed / cancelled (Phase 15). Apps take their undo snapshot on commit.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Open questions</h2>
+  <div class="note">
+    <ul>
+      <li>Windows and macOS can only be compile-checked here. Someone needs to run them on real machines, including <code>run.ps1</code>.</li>
+      <li>Should <code>-Dsdl=source</code> become the default? It needs no installed SDL, but the first build fetches and compiles SDL (about 30 s here).</li>
+      <li>Is BeeModel meant to move onto Zui (the Phase 27 pilot), or should Zui only be able to? If it moves, Zui's default look should come close to BeeModel's, so screenshots can be compared.</li>
+      <li>Should Zui ship BeeModel's 114 icons and nine theme palettes as an optional pack, or only the mechanisms to load them?</li>
+    </ul>
+  </div>
+
+  <p class="sub">Bugs, performance work and API gaps found on 2026-11-14: <a href="Docs/improvements.html">Docs/improvements.html</a>.</p>
+  <h2>Known limits</h2>
+  <ul class="plain" id="limits"></ul>
+
+  <h2>Spec coverage</h2>
+  <table>
+    <thead><tr><th>Spec item</th><th>Phase</th></tr></thead>
+    <tbody id="coverage"></tbody>
+  </table>
+</main>
+
+<script>
+// Status lives here: edit `s` values ("done", "doing", "todo") as work lands.
+const PHASES = [
+  { title: "Scaffold and toolchain", goal: "A package that builds, tests and runs through one script.",
+    tasks: [
+      ["done", "build.zig with core, software and SDL3 modules kept separate"],
+      ["done", "mise.toml pinning Zig 0.17.1; run.sh with demo, test, shot and cross commands"],
+      ["done", "LICENSE (MIT), .gitignore, tests/ wired into zig build test"],
+      ["done", "Compile check for Windows and macOS targets"],
+    ],
+    demo: ["./run.sh help", "./run.sh test", "./run.sh cross"],
+    review: ["The commands work on a clean checkout"] },
+  { title: "Draw layer and software renderer", goal: "Pixels on screen from recorded draw commands, without any UI logic.",
+    tasks: [
+      ["done", "Geometry, Color, DrawList, Renderer vtable (draw.zig)"],
+      ["done", "CPU rasterizer: fill, border, rounded corners with anti-aliasing, alpha, clip, HiDPI scale"],
+      ["done", "Input model (input.zig) and SDL3 window, events, presentation"],
+      ["done", "PNG writer and --shot / --frames flags on every demo"],
+      ["done", "Pixel-exact tests for fill, clip, scale and blending"],
+    ],
+    demo: ["./run.sh 01_shapes"],
+    review: ["Corners look smooth and the orbiting circle has clean edges", "The blue box follows the mouse and is clipped by the outlined area", "Resizing the window works"] },
+  { title: "Fonts and text", goal: "Readable anti-aliased text with no C dependency.",
+    tasks: [
+      ["done", "Bounds-checked TrueType parser: cmap, glyf, composite glyphs, metrics"],
+      ["done", "Scanline coverage rasterizer with subpixel positioning"],
+      ["done", "Font with glyph cache and text measuring; text in DrawList and Renderer"],
+      ["done", "Embedded default font with its licence"],
+      ["done", "Tests, including a malformed font file"],
+    ],
+    demo: ["./run.sh 02_text"],
+    review: ["Text is sharp at 13 to 16 px", "Accented characters (é, ü, ñ) render", "Text is clipped correctly"] },
+  { title: "Ui context, label, button", goal: "The first real immediate-mode loop. This is the API shape to sign off.",
+    tasks: [
+      ["done", "Ui with beginFrame / endFrame, frame arena, ID hashing and ID stack"],
+      ["done", "Hover, active and mouse capture through a shared interact()"],
+      ["done", "Cursor layout with sameLine; Style with dark and light themes"],
+      ["done", "label, labelf, button returning clicked / held / hovered"],
+      ["done", "Headless tests driving simulated clicks and hit testing"],
+    ],
+    demo: ["./run.sh 03_buttons"],
+    review: ["Press, drag off, release does not click", "Hover and pressed states look right", "The example code reads the way you want your UI code to read"] },
+  { title: "Full layout", goal: "Everything a form or toolbar needs.",
+    tasks: [
+      ["done", "Center items of different heights on a shared line (see the label beside Save in 03_buttons)"],
+      ["done", "Horizontal and nested groups"],
+      ["done", "Padding, spacing and alignment options"],
+      ["done", "Fixed, auto and grow sizing"],
+      ["done", "Separator and spacer"],
+      ["done", "Tests for layout math"],
+    ],
+    demo: ["./run.sh 04_layout"],
+    review: ["Grow items fill space when the window is resized", "Nested groups line up"] },
+  { title: "Windows and panels", goal: "Floating windows with z-order.",
+    tasks: [
+      ["done", "Per-window draw lists composed in z-order"],
+      ["done", "Title bar: drag, collapse, click to raise"],
+      ["done", "Hit testing respects z-order"],
+      ["done", "Resize grip and scrolling with a scrollbar"],
+      ["done", "Persistent window state keyed by ID"],
+    ],
+    demo: ["./run.sh 05_windows"],
+    review: ["Overlapping windows never click through", "Long content scrolls", "A window can't be lost off-screen"] },
+  { title: "Checkbox and sliders", goal: "The first value-editing widgets.",
+    tasks: [
+      ["done", "Checkbox"],
+      ["done", "Generic slider over float and integer types, with mouse capture"],
+      ["done", "Tests with simulated drags"],
+    ],
+    demo: ["./run.sh 06_widgets"],
+    review: ["Sliders keep tracking when the mouse leaves them", "Integer sliders step cleanly"] },
+  { title: "Single-line text input", goal: "An editor good enough for tools.",
+    tasks: [
+      ["done", "Caret, UTF-8 aware editing, horizontal scroll"],
+      ["done", "Selection with mouse and keyboard, word jump"],
+      ["done", "Clipboard through a backend hook; undo"],
+      ["done", "Caret blink that wakes an idle UI"],
+    ],
+    demo: ["./run.sh 07_text_input"],
+    review: ["Non-ASCII typing works on your keyboard layout", "Copy and paste work with other apps"] },
+  { title: "Keyboard navigation", goal: "Usable without a mouse.",
+    tasks: [
+      ["done", "Tab and Shift+Tab focus order, visible focus ring"],
+      ["done", "Enter and Space activate; Escape cancels"],
+      ["done", "Arrow keys adjust sliders"],
+      ["done", "Tabbing into a scrolled window scrolls the widget into view and raises the window"],
+    ],
+    demo: ["./run.sh 08_keyboard"],
+    review: ["You can reach and operate everything with the keyboard"] },
+  { title: "Style system", goal: "Themes and scoped overrides.",
+    tasks: [
+      ["done", "Complete Theme: every color and metric"],
+      ["done", "Push and pop overrides for colors and metrics"],
+      ["done", "Live style editor demo, with copy theme as Zig code"],
+    ],
+    demo: ["./run.sh 09_style"],
+    review: ["Light and dark are both pleasant", "An override doesn't leak past its pop"] },
+  { title: "Tooltips, popups, color edit", goal: "Overlay widgets.",
+    tasks: [
+      ["done", "Tooltip with hover delay that wakes an idle UI"],
+      ["done", "Popup with click-away close, stays on screen, nested popups"],
+      ["done", "Color edit: swatch, RGBA sliders and hex field in a popup"],
+    ],
+    demo: ["./run.sh 10_overlays"],
+    review: ["Popups sit above all windows", "Tooltips never go off-screen"] },
+  { title: "Full demo and documentation", goal: "The showcase and the docs for a first release.",
+    tasks: [
+      ["done", "examples/demo showing every widget and theme switching, with its own main loop"],
+      ["done", "Backend-free example: render to PNG with no window code (static binary, no libc)"],
+      ["done", "examples/demo builds with a plain zig build inside that folder (spec requirement)"],
+      ["done", "README: quick start, dependency setup, usage, backend guide, limits; its sample program is compile-checked"],
+      ["done", "Doc comments on every public item, checked by zig build check-docs"],
+      ["done", "Frame-time benchmark (about 21 µs UI, 2 ms software render, 0 allocations) and a no-allocation test with every widget busy"],
+    ],
+    demo: ["./run.sh demo", "./run.sh render_png out.png", "./run.sh bench", "./run.sh check", "cd examples/demo && zig build run"],
+    review: ["A newcomer can follow the README", "Idle CPU is near zero"] },
+  { title: "Portability and extras", goal: "Beyond the first release. You picked four groups; native no-C backends were left out.",
+    tasks: [
+      ["done", "Tree node and collapsing header"],
+      ["done", "Scroll areas, list view (selectable rows) and sortable tables; the mouse wheel goes to the innermost scroll area"],
+      ["done", "Shadows under windows, popups and tooltips (optional drawShadow in the Renderer vtable)"],
+      ["done", "Kerning from the font's kern table, applied in measuring, drawing and caret placement"],
+      ["done", "Hot reload: ui.saveState / ui.restoreState, and a host that swaps in a rebuilt UI library"],
+      ["done", "OpenGL 3.3 renderer behind the same interface; gl-check: max 3/255 difference, about 17x faster"],
+      ["done", "run.ps1, and cross check that builds a whole program for Windows and macOS"],
+      ["done", "SDL3 from source (-Dsdl=source): SDL 3.4.20 linked statically, no system SDL needed; verified on Linux (Wayland, X11, OpenGL)"],
+      ["doing", "Run and fix on Windows and macOS: every demo cross-compiles for Windows with SDL built in (only stock Windows DLLs needed); macOS SDL needs Apple's SDK; running needs real machines"],
+    ],
+    demo: ["./run.sh 11_containers", "./run.sh 12_hot_reload", "./run.sh demo --gl", "./run.sh gl-check"],
+    review: ["The table and tree feel right", "Hot reload: edit app.zig while 12_hot_reload runs, then zig build hot-app", "Shadows are subtle enough in both themes", "zig build -Dsdl=source works for you"] },
+
+  // ---- BeeModel roadmap (see "BeeModel coverage" below) ----
+  { title: "Drawing primitives and images", goal: "Everything BeeModel paints by hand, as draw commands that both renderers understand.",
+    uses: "icons on every toolbar, row and tab; the viewport and render images; pie wedges; node wires; graph-editor curves; the colour picker's gradients; resize and text cursors.",
+    tasks: [
+      ["done", "Lines and polylines with any width, anti-aliased; dashed lines"],
+      ["done", "Circles, rings and arc segments (pie wedges, gizmo balls)"],
+      ["done", "Triangle lists with a colour per vertex: gradients for the saturation / value square, the hue strip and backgrounds"],
+      ["done", "Cubic Bézier curves, flattened to polylines (node wires, animation curves)"],
+      ["done", "Images: RGBA pixels or alpha masks, drawn scaled with nearest, linear or auto filtering, updated in place every frame (Image.touch); the GL renderer caches textures by id and version"],
+      ["done", "Icon sets: alpha-mask atlases drawn in any colour, crisp at whole multiples of their size; 18 built-in vector icons; an icon option on buttons and selectable rows (menu items come with Phase 16)"],
+      ["done", "Pixel snapping: horizontal and vertical lines land on whole pixels at any scale; rects, images and gradients already did"],
+      ["done", "Custom paint region: ui.beginCanvas gives its rect, the left-button interaction, right / middle capture, pointer delta, the wheel and a painter"],
+      ["done", "Cursor shapes asked for by widgets in ui.cursor (text fields, resize grip, canvases), shown by the SDL backend's setCursor"],
+      ["done", "Several fonts: Font.loadFile for system fonts, Font.initMono (Liberation Mono, bundled), ui.pushFont / popFont, and font.fallback for missing characters"],
+      ["done", "Software and OpenGL renderers draw every new command; gl-check covers them (max difference 3/255)"],
+    ],
+    demo: ["./run.sh 13_drawing", "./run.sh 13_drawing --gl", "./run.sh 13_drawing --shot out.png --scale 2", "./run.sh gl-check"],
+    review: ["Lines and arcs look smooth at every width", "Icons stay sharp at 100 and 200 %; bitmap icons at 150 % are smoothed, by design", "The animated image (Animate on) updates every frame without stutter", "Middle-drag pans, the wheel zooms about the pointer, the curve's handles drag", "Pointer shapes change over the buttons in the sidebar"] },
+  { title: "Widget record and scripted input", goal: "Tests and AI agents can see the UI and drive it by name, as BeeModel's --dump-ui and --click-label do.",
+    uses: "BeeModel's 47 scripted scenarios, its two fuzzers, and the MCP ui_tree tool.",
+    tasks: [
+      ["done", "Every widget records its kind, label, visible rect, value, enabled, focused, hovered, tooltip and window (ui.recording, ui.widgets(), ui.findWidget); off by default, no measurable cost when off, about 3 µs a frame when on, no allocations"],
+      ["done", "Dump the list as JSON or text (ui.writeWidgets, --dump-ui [json|text])"],
+      ["done", "Scripted input (zui.ScriptPlayer): click, double-click, right-click, hover, drag (by, to N%, onto a widget), scroll, type, keys with modifiers, wait, frames, expect, shot; widgets by label, kind:label or Window > kind:label"],
+      ["done", "Hover query: ui.hoveredWidget() gives the widget under the pointer, with recording off too"],
+      ["done", "Scenario runner: the demos take --script and write shots; zig build scenarios plays tests/scenarios (part of ./run.sh check); tests/script_test.zig drives a test app with scripts"],
+    ],
+    demo: ["./run.sh 11_containers --dump-ui text", "./run.sh 10_overlays --script tests/scenarios/10_overlays.txt", "./run.sh scenarios"],
+    review: ["A scenario reads like the steps a person would take (see tests/scenarios)", "The dump lists everything visible and nothing that is hidden: scroll a window and its hidden rows drop out", "A failing script names the line and the reason"] },
+  { title: "Property-editor widgets", goal: "The fields that BeeModel's Properties, Preferences and forms are built from.",
+    uses: "location / rotation / scale rows, material sliders, light and camera values, the modifier stack, every preference, the command forms.",
+    tasks: [
+      ["done", "Number field: drag to scrub (Shift finer, Ctrl snapped steps), click or Enter to type, Ctrl+wheel and arrow keys step; units and suffixes; Escape during a drag or typing puts the value back"],
+      ["done", "Expressions in number fields (2*pi, width/2, 25mm + 1cm) through zui.Evaluator: arithmetic, functions, constants, units, app names, or the app's own parser"],
+      ["done", "Labelled value field with an optional slider fill (label inside or outside); vector rows (X Y Z) with axis colours, recorded as \"Location X\""],
+      ["done", "Integer and angle fields (shown and typed in degrees, stored in radians; rad and turn accepted)"],
+      ["done", "Drop-down list with icons, check marks, per-item disabled reasons and tooltips; dropdownEnum for enums; arrows step the choice when focused, Up / Down / Enter in the open list"],
+      ["done", "Segmented buttons (one Tab stop, arrows move) and icon toggles; eye, eye-off, lock and unlock added to the built-in icons"],
+      ["done", "Disabled widgets that say why: ui.pushDisabled(reason) fades, blocks clicks and keys, leaves the Tab order; the tooltip gives the reason and ui.disabledClick() hands a click's reason to the app"],
+      ["done", "Rich tooltips: title, shortcut, body, warning with icon; below, beside or at the pointer; long text wraps (also used for disabled reasons)"],
+      ["done", "Edit lifecycle on every value widget (started, changed, committed, cancelled), including slider, checkbox, text input and colour edit: one drag or typed value is one undo step"],
+      ["done", "Context-menu hook: Interaction.context_clicked and ui.contextRequest(), so one app menu serves every field (the demo has Reset to Default, Copy and Paste Value)"],
+    ],
+    demo: ["./run.sh 15_properties", "./run.sh 15_properties --script tests/scenarios/15_properties.txt"],
+    review: ["Scrubbing feels like BeeModel's: drag, then Shift and Ctrl", "Typed expressions work: 2*pi, 25cm in Location", "One drag adds one step to the demo's undo history; Undo puts it back", "Disabled things (Cone, Area light, Rendered, Paste Value) say why"] },
+  { title: "Menus and command search", goal: "BeeModel's menu bar, context menus and F3 search.",
+    uses: "File, Edit, View, Select, Add, Object, Mesh, Render, AI, Help over 692 operators; right-click menus on rows, headers, fields and files; F3; the F1 shortcut list; Preferences › Keymap.",
+    tasks: [
+      ["done", "Menu bar; hovering moves between open menus"],
+      ["done", "Menu items with icon, label, shortcut, check mark, separators, submenus, tooltips, and greyed items that say why; columns for checks and icons only when a menu uses them"],
+      ["done", "Keyboard: F10 or Alt+letter opens; Up / Down / Home / End; Right into submenus and on to the next menu, Left back; Enter; Esc goes back one level (the key set now has every letter, digit and F1 to F12)"],
+      ["done", "Context menus at the pointer: ui.beginContextMenu(result, name), or beginPopupMenu for one opened by the app (with ui.contextRequest from Phase 15)"],
+      ["done", "Command palette: a search field over commands the app supplies, fuzzy ranking (runs and word starts first) with matched letters marked, keyboard picking, disabled commands that say why"],
+      ["done", "Shortcut capture (ui.shortcutField) and zui.Shortcut: parse, format, pressed"],
+      ["done", "Menus and popups taller than the window scroll with the wheel and follow the keyboard"],
+    ],
+    demo: ["./run.sh 16_menus", "./run.sh 16_menus --script tests/scenarios/16_menus.txt"],
+    review: ["Menus open at once and never flicker", "Every item can be reached with the keyboard alone", "Greyed items explain themselves", "F3 then a few letters finds a command"] },
+  { title: "Tabs, areas and docking", goal: "BeeModel's window layout: areas that split, dock, float and switch with the workspace.",
+    uses: "the area tree, area headers with the editor-type menu, floating panels with dock guides, workspace tabs, Properties' icon tabs, F6.",
+    tasks: [
+      ["done", "Tab bars: horizontal (workspaces, with + to add, double-click or F2 to rename, a cross to close) and vertical icon tabs (Properties); arrows move between tabs"],
+      ["done", "Dock space: zui.Dock, an app-owned split tree of up to 32 areas, with draggable splitters and minimum sizes"],
+      ["done", "Area header: editor-type list (narrower in narrow areas), split, maximize and close buttons, a right-click menu"],
+      ["done", "Dock by dragging a header: the outer 30 % of an area splits it on that side, the middle swaps; a tint shows where it will go"],
+      ["done", "Join two areas by dragging the top-left corner into a neighbour; maximize and back (Ctrl+Space)"],
+      ["done", "Floating panels: Float Area makes a window you can move, resize and raise; five dock guides while its title is dragged over an area; a Dock button"],
+      ["done", "F6 / Shift+F6 active-area ring; Tab focus kept to the active area (focus scopes, also for dialogs)"],
+      ["done", "Layouts written and read as text (Dock.write / Dock.read, validated), so the app can keep workspaces in its own files"],
+    ],
+    demo: ["./run.sh 17_docking", "./run.sh 17_docking --script tests/scenarios/17_docking.txt"],
+    review: ["The tint always matches what happens on release", "Nothing gets lost when the window becomes small", "A floated panel docks where the guide says"] },
+  { title: "Dialogs, status bar and feedback", goal: "The parts that tell people what is going on.",
+    uses: "Save changes?, command forms, About, the Preferences dialog, key hints, toasts, job chips, the welcome screen.",
+    tasks: [
+      ["done", "Modal dialogs: dimmed backdrop, every pointer position and Tab kept inside, Enter for the default button (or the focused one), Esc for Cancel (after undoing a text edit), sized to their content; dialogButtons with disabled reasons"],
+      ["done", "Status bar helpers: key-hint chips (keys and what they do), items aligned right with a spacer"],
+      ["done", "Toasts: info, success, warning, failure; timed, stacked, clickable without reaching what is under them; they wake an idle UI only to expire"],
+      ["done", "Progress bar and job chip: a percentage or a gliding bar, elapsed time and time left (after a twentieth and two seconds, as BeeModel)"],
+      ["done", "Cards with an image or icon, title and subtitle (welcome screen, templates, recent files)"],
+      ["done", "Anything animated asks for frames only while it is visible (gliding bars, toasts)"],
+    ],
+    demo: ["./run.sh 18_feedback", "./run.sh 18_feedback --script tests/scenarios/18_feedback.txt"],
+    review: ["Esc and Enter always do the expected thing in a dialog", "Idle CPU stays at zero once the toasts are gone", "Nothing behind a dialog reacts"] },
+  { title: "Lists, trees and drag and drop", goal: "The outliner, the asset browser and every long list.",
+    uses: "the outliner (indent, fold, eye / lock / camera, rename, reparent by dragging, filter, folders), asset tiles, the keymap list, the undo history.",
+    tasks: [
+      ["done", "Multi-selection: click, Ctrl+click toggles, Shift+click selects a range; keyboard too (arrows, Shift, Home/End, Page Up/Down, Ctrl+A, Space)"],
+      ["done", "Tree rows with indent, fold arrow, icon, and toggles at the right (described before the row's own click, so they win)"],
+      ["done", "Inline rename (double-click or F2) in rows and tabs"],
+      ["done", "Drag and drop: a payload, drop zones that light up, a label at the pointer saying what letting go does, refused drops with a reason, Escape to cancel"],
+      ["done", "Files dropped onto the window from the system go to the zone under the pointer (Input.onFileDrop; the SDL backend feeds it)"],
+      ["done", "Virtual lists: only the visible rows run; 8,192 rows describe about 30 a frame"],
+      ["done", "Tile grid with thumbnails, keyboard, double-click; tiles drag out like rows"],
+      ["done", "Horizontal scrolling (a scrollbar, Shift+wheel, sideways wheels) and scroll regions at any rect"],
+    ],
+    demo: ["./run.sh 19_outliner", "./run.sh 19_outliner --script tests/scenarios/19_outliner.txt"],
+    review: ["Reparenting by dragging feels like BeeModel's outliner", "Scrolling thousands of rows stays smooth", "A file dragged from the file manager lands in the viewport"] },
+  { title: "Text views and the console", goal: "Text that people read, select and type at length.",
+    uses: "the Console's log, input and history; the AI Assistant's transcript and prompt; the Help editor; the F1 list.",
+    tasks: [
+      ["done", "Wrapped text that breaks between words (spaces hang, kerning counted); rich text with colored spans and inline key chips"],
+      ["done", "Read-only text view over any line source (LogBuffer: fixed memory, oldest dropped): drag to select across lines, double-click selects a block, Ctrl+A, Ctrl+C, follows new lines while at the bottom, monospace font"],
+      ["done", "Multi-line text area: wraps, Up / Down by visual line, word jumps, selection, clipboard; Enter sends with Shift+Enter for a new line, or Enter breaks"],
+      ["done", "Console line with Up / Down history, Tab completion through a hook (widgets can now own Tab), focus kept after Enter"],
+      ["done", "100,000 log lines: about 25 described a frame; the scroll range is exact from the first frame"],
+    ],
+    demo: ["./run.sh 20_console", "./run.sh 20_console --script tests/scenarios/20_console.txt"],
+    review: ["Selecting and copying from the log works across lines", "The prompt behaves like a chat box", "Scrolling 100,000 lines is smooth"] },
+  { title: "Colour picker and themes", goal: "BeeModel's colour picker and its theme features.",
+    uses: "material, light, object and paint colours; the accent colour; nine themes; the 4.5:1 contrast rule; colour-blind-safe axes; UI scale.",
+    tasks: [
+      ["done", "Picker: saturation / value square, hue strip, old and new colour, hex, R G B and H S V fields"],
+      ["done", "Eyedropper: take a colour from anywhere in the window (renderer read-back: the backend answers ui.sample_request with input.onColorSample)"],
+      ["done", "Recent colours (stored by the app) and swatches supplied by the app"],
+      ["done", "Right-click a swatch: copy hex, paste hex, reset"],
+      ["done", "Themes built from a few base colours and an accent; text on the accent picks black or white"],
+      ["done", "Contrast check: a test that every text and background pair is at least 4.5:1"],
+      ["done", "A theme preview strip for theme lists"],
+      ["done", "UI scale from 75 to 200 %, fonts rasterized at that size, independent of the display scale (ui.setScale, ui.renderFrame)"],
+    ],
+    demo: ["./run.sh 21_colour"],
+    review: ["The picker feels like BeeModel's", "Every theme passes the contrast test"] },
+  { title: "Pie menus and the radial wheel", goal: "Menus around the pointer.",
+    uses: "the Z shading pie, the Ctrl+Tab mode pie, the Shift+S snap pie, the right-click wheel with its groups.",
+    tasks: [
+      ["done", "Pie: up to eight choices by direction; hold a key and release on a choice; a quick tap tells the app to run the key's own action"],
+      ["done", "Wheel: coloured entries with icons on a ring; groups open an outer arc"],
+      ["done", "Number keys pick (1 to 9, 0, -); Backspace returns to the ring; Esc or the centre closes"],
+      ["done", "Click, or press, drag and release; greyed entries say why above the wheel"],
+      ["done", "Anti-aliased wedges and shadows in both renderers"],
+    ],
+    demo: ["./run.sh 22_pies"],
+    review: ["Flicking towards a choice picks it without aiming", "Tapping the key still does its own action"] },
+  { title: "2D views: timeline, curves, image viewer", goal: "The building blocks of BeeModel's 2D editors.",
+    uses: "the Timeline, Dope Sheet, Graph Editor, UV Editor and Render editor.",
+    tasks: [
+      ["done", "2D view: pan, zoom about the pointer, fit, limits; wheel, Ctrl+wheel, Shift+wheel and middle-button drag"],
+      ["done", "Grid and rulers with readable step labels (frames, values)"],
+      ["done", "Playhead you can scrub on a ruler; range markers"],
+      ["done", "Box selection (Shift adds, Ctrl removes) and click picking"],
+      ["done", "Draggable handles (keys, curve handles, UV points) with snapping"],
+      ["done", "Image viewer: zoom up to 32 times about the pointer, pan, fit"],
+      ["done", "Minimap (beginMinimap / endMinimap; the image viewer and node editor use it)"],
+    ],
+    demo: ["./run.sh 23_views"],
+    review: ["Zooming keeps the point under the pointer still", "Handles are easy to grab at every zoom"] },
+  { title: "Node editor", goal: "A node-graph widget for BeeModel's material and geometry node editors.",
+    uses: "the Node Editor (42 node types), its add menu and palette, the minimap, comment frames, reroute knots.",
+    tasks: [
+      ["done", "Nodes: header coloured by category, pins, inline value fields, collapse to the header, a preview painted by the app"],
+      ["done", "Wires: Bézier curves coloured by type; drag from a pin to link; dropping in empty space asks the app what to add"],
+      ["done", "Reroute knots (double-click a wire); cut with Alt+click or an Alt+drag knife"],
+      ["done", "Select by click or box (Shift / Ctrl); moving one selected node moves all; align and distribute"],
+      ["done", "Comment frames: title, move with their contents, resize, rename"],
+      ["done", "Add menu in columns with search; drag from a palette onto the canvas"],
+      ["done", "Zoom from 25 to 200 % with sharp text (Style.scaled); minimap; 200 nodes: 0.4 ms UI, 9.6 ms software render, no allocations"],
+      ["done", "The graph stays the app's data: Zui reports edits (link, unlink, move, delete, copy, paste)"],
+      ["done", "A separate module, zui_nodes, using only the public API"],
+    ],
+    demo: ["./run.sh 24_nodes"],
+    review: ["Linking and cutting wires feel direct", "A graph of 200 nodes stays fast"] },
+  { title: "File browser", goal: "A ready-made open and save dialog.",
+    uses: "Open, Save As, imports, exports with their options, Reference Images from Folder.",
+    tasks: [
+      ["done", "Listing with name, size and date columns; sorting; folders first; filter; hidden files; all files or only the kinds asked for"],
+      ["done", "Crumbs; back, forward and up; a path field with Tab completion"],
+      ["done", "Places, favourites, drives with free space, recent folders (stored by the app)"],
+      ["done", "Preview pane: images, and thumbnails the app supplies (BeeModel's .bee pictures)"],
+      ["done", "Asks before overwriting; an options panel filled by the app (export settings)"],
+      ["done", "Keyboard: Enter, Backspace, Alt+Left / Right, Ctrl+H"],
+      ["done", "A separate module, zui_files, using only the public API"],
+    ],
+    demo: ["./run.sh 25_files"],
+    review: ["It can stand in for BeeModel's file browser feature for feature"] },
+  { title: "Native platforms", goal: "Run where BeeModel runs, without C.",
+    uses: "BeeModel's static no-libc build on Wayland, its planned Windows 11 port, panels on another monitor.",
+    tasks: [
+      ["done", "Embedding guide: an app that owns its window (as BeeModel does) feeds Zui's input and shows the software renderer's pixels (SoftwareRenderer.useBuffer, examples/embed, README)"],
+      ["done", "Native Wayland backend with no libc: xdg-shell, shm, fractional scale, cursor shapes, clipboard, file drops, XKB layouts (tried live on Hyprland)"],
+      ["done", "Client-side window frame drawn by Zui: title, minimize / maximize / close, drag to move, resize from the edges (ui.clientFrame)"],
+      ["done", "Native Win32 backend with no C runtime (compile- and link-checked; imports only system DLLs)"],
+      ["done", "Several OS windows from one Ui: an area in a window of its own; menus and tooltips show in the window they belong to (WindowOptions.detached, ui.viewports; Wayland backend)"],
+      ["todo", "Run on real Windows and macOS machines (carried over from Phase 12)"],
+    ],
+    demo: ["./run.sh native", "./run.sh native --detach", "./run.sh embed out.png"],
+    review: ["The demo builds as a static binary and runs on Wayland with no libc"] },
+  { title: "BeeModel pilot", goal: "Prove it on the real thing.",
+    uses: "beemodel-zip itself.",
+    tasks: [
+      ["done", "Move BeeModel's Preferences dialog onto Zui behind a build flag, with the same look and behaviour (zig build -Dzui=true; src/zuiprefs.zig)"],
+      ["todo", "Then the Outliner and Properties; compare screenshots with BeeModel's own UI (the Preferences' screenshots are compared)"],
+      ["done", "Frame time within BeeModel's budget: Preferences open, 1.94 / 2.16 ms (Interface / Keymap) against 1.88 / 1.95 ms for BeeModel's own"],
+      ["done", "BeeModel's scenarios and fuzzers pass with Zui inside: 315 scenarios, fuzz.py, fuzz_areas.py and a new fuzz_prefs.py"],
+      ["done", "Write down what BeeModel still draws itself (the 3D viewport, sculpt overlays) and why (BeeModel's Docs/zui-pilot.md)"],
+      ["done", "BeeModel uses Zui for good (its Docs/beezigui-migration.html, M0 and M1): no build flag; one Ui for the window; dialogs, forms and prompts on beginDialog; panels drawn in place inside BeeModel's own layout"],
+      ["done", "DrawList.view, Ui.rootCommandCount and Ui.rootView: draw part of a frame's root early, so an app's own menus can go over a panel Zui drew"],
+      ["done", "TextInputOptions.select_on_click: the first click into a field selects all of it (BeeModel's fields)"],
+      ["done", "Fixed: a dialog opened in a Ui's first frames didn't focus its default button"],
+      ["done", "Fixed: with nothing focused, Enter didn't press a dialog's default button (focused and text_edit.id both .none)"],
+      ["done", "Fixed: the Enter that ends typing in a dialog's field also pressed the default button (Ui.enter_taken)"],
+    ],
+    demo: ["cd ../Beemodel && ./run.sh", "then Edit > Preferences (Ctrl+,), F1, Edit > Undo History, F3 Frame Range"],
+    review: ["You can't tell which panels are Zui"] },
+];
+
+// [UI element, where BeeModel uses it, Zui now: "have" | "part" | "none", phase]
+const BEEMODEL = [
+  ["Buttons, checkboxes", "everywhere", "have", "3, 6"],
+  ["Text field with selection, word jumps, clipboard", "names, filter, console, forms", "have", "7"],
+  ["Tab focus ring, Enter / Space, arrows", "everywhere", "have", "8"],
+  ["Sortable tables, scroll areas", "file browser, keymap list, panels", "have", "12"],
+  ["HiDPI (fractional scale)", "the whole window", "have", "2"],
+  ["Clipboard", "fields, text", "have", "7"],
+  ["Icons, 16 px, drawn in any colour", "toolbars, outliner, tabs, menus", "have", "13"],
+  ["Images updated every frame", "3D viewport, Render editor, thumbnails", "have", "13"],
+  ["Lines, arcs, wedges, curves, gradients", "gizmo, pies, graph editor, colour picker", "have", "13"],
+  ["Painted areas with their own input", "viewport, timeline, UV editor", "have", "13"],
+  ["Cursor shapes", "splitters, number fields, text", "have", "13"],
+  ["System fonts, monospace", "UI text (Noto Sans), console", "have", "13"],
+  ["Widget list, click by label", "--dump-ui, scenarios, fuzzers, MCP ui_tree", "have", "14"],
+  ["Number fields: scrub, type, expressions, units", "Properties, forms, preferences", "have", "15"],
+  ["Labelled value fields with slider fill, X Y Z rows", "Properties", "have", "15"],
+  ["Drop-down lists with check marks", "light type, presets, UI scale, keymap", "have", "15"],
+  ["Icon toggles, segmented buttons", "eye / lock / camera, shading, select mode", "have", "15"],
+  ["Greyed widgets that say why", "every command and field", "have", "15"],
+  ["Rich tooltips (title, shortcut, body, why)", "everywhere", "have", "15"],
+  ["One undo step per drag or typed value", "every field", "have", "15"],
+  ["Field context menu", "every field", "have", "15, 16"],
+  ["Menu bar, submenus, keyboard menus", "the top bar, F10, Alt+letter", "have", "16"],
+  ["Context menus", "rows, headers, fields, files, keys", "have", "16"],
+  ["Command search (F3), shortcut list (F1)", "F3, F1", "have", "16"],
+  ["Shortcut capture", "Preferences › Keymap", "have", "16"],
+  ["Tabs, horizontal and vertical", "workspaces, Properties", "have", "17"],
+  ["Areas: split, dock, join, maximize", "the main window", "have", "17"],
+  ["Floating panels with dock guides", "panels", "have", "17"],
+  ["F6 area ring, focus kept to an area", "areas, dialogs", "have", "17"],
+  ["Modal dialogs and forms", "Save changes?, command forms, About", "have", "18"],
+  ["Status bar with key chips", "status bar", "have", "18"],
+  ["Toasts", "above the status bar", "have", "18"],
+  ["Progress bars and job chips", "status bar", "have", "18"],
+  ["Cards with images", "welcome screen", "have", "18"],
+  ["Tree rows with folding", "outliner, folders", "have", "19"],
+  ["Multi-selection, range selection", "outliner, keys, file browser", "have", "19"],
+  ["Inline rename", "outliner, folders, workspaces", "have", "19"],
+  ["Drag and drop with a drop label", "outliner, asset tiles, node palette", "have", "19"],
+  ["Files dropped on the window", "the window", "have", "19"],
+  ["Virtual lists for thousands of rows", "outliner (8,192 objects)", "have", "19"],
+  ["Thumbnail tile grid", "Asset Browser", "have", "19"],
+  ["Wrapped and selectable text, logs", "Console, Help, AI Assistant", "have", "20"],
+  ["Multi-line text input", "AI prompt", "have", "20"],
+  ["Colour picker: square, hue strip, eyedropper, recent", "every colour", "have", "21"],
+  ["Themes with an accent, contrast rule", "Preferences › Interface", "have", "21"],
+  ["UI scale 75 to 200 %", "Preferences › Interface", "have", "21"],
+  ["Pie menus", "Z, Ctrl+Tab, Shift+S", "have", "22"],
+  ["Radial wheel with groups and number keys", "right-click in the viewport", "have", "22"],
+  ["Pan and zoom 2D views, rulers, playhead", "Timeline, Graph, UV, Render", "have", "23"],
+  ["Box select, draggable handles", "Dope Sheet, Graph Editor, UV Editor", "have", "23"],
+  ["Node editor", "Node Editor", "have", "24"],
+  ["File browser", "Open, Save As, import, export", "have", "25"],
+  ["Native Wayland with no libc", "BeeModel's window", "have", "26"],
+  ["Client-side title bar", "BeeModel's window", "have", "26"],
+  ["An area in its own OS window", "panels on another monitor", "have", "26"],
+  ["Windows", "planned Windows 11 port", "part", "12, 26"],
+];
+
+const LIMITS = [
+  "Only tested on Linux with Wayland. Windows and macOS are compile-checked for the core and software renderer only.",
+  "Build with -Dsdl=source to need no installed SDL3; the default links the system's.",
+  "HiDPI scaling is unit-tested only, because every monitor here runs at scale 1.",
+  "No shaping and no right-to-left text. Hinting is limited to aligning the x-height. No kerning between a character and one from a fallback font.",
+  "Filled paths must be convex (concave shapes go through a mesh). Meshes are not anti-aliased. Lines have square ends and capped miter joins.",
+  "Small anti-aliased shapes cost the software renderer per triangle: a full pie menu of eight wedges is about 0.1 to 0.2 ms.",
+  "The glyph cache only grows, unless you call clearCache. This matters only if you animate font sizes.",
+  "Inside a sideways-scrolling area, give rows fixed or natural widths: .fill takes the content's width, which only grows.",
+  "Windows can't be moved, resized or collapsed from the keyboard; Tab reaches the widgets inside them.",
+  "Tables don't nest, have no column resizing, and sorting is the app's job (header_clicked says which column).",
+  "Plain tooltips (ui.tooltip) don't wrap; rich ones (ui.tooltipRich) do.",
+  "Text input has no IME composition preview: composed characters arrive once committed.",
+  "Pies and the wheel keep their centre on screen, so near an edge the pointer is not at the centre.",
+  "2D views don't nest, and the minimap assumes y grows downwards. Box selection is on the plot only, not the rulers.",
+  "In the node editor, widgets inside a node that another node overlaps can still take a press; nodes themselves pick the topmost. Wires are drawn behind nodes only because links are described after nodes.",
+  "The file browser speaks POSIX paths (a slash between folders); Windows drive letters wait for Phase 26. Previews read PNG only (8-bit, not interlaced); other formats need the app's thumbnails.",
+  "The software renderer takes about 10 ms for 200 nodes with 300 wires at 1280x800; the OpenGL renderer is several times faster.",
+  "The native Wayland backend needs wp_cursor_shape_v1 for pointer shapes and fractional scale with viewporter for scales other than 1; it has no input methods. Detached windows get OS windows only on the Wayland backend.",
+  "The Win32 backend is compile- and link-checked only; it has not run on Windows.",
+  "The demos rely on the default font's coverage. Missing characters show as the font's empty-box glyph.",
+];
+
+const COVERAGE = [
+  ["Ui, frames, persistent state", 3], ["Label, button", 3], ["Style: light and dark", "3, 9"],
+  ["Renderer interface", 1], ["Software backend + window", 1], ["Text drawing", 2],
+  ["SameLine", 3], ["Spacing, separator, groups", 4], ["Padding, alignment, grow / fixed", 4],
+  ["Window / panel: drag, collapse, title", 5], ["Checkbox, sliders", 6], ["Text input", 7],
+  ["Hit test, hover, active, capture", "3, 5"], ["Keyboard navigation", 8], ["Push / pop style", 9],
+  ["Tooltip, popup, color edit", 10], ["Full demo with style switching", 11], ["README, tests", 11],
+  ["Tree, table, shadows (nice to have)", 12], ["Hot-reload friendly (nice to have)", 12],
+  ["zig build inside examples/demo", 11], ["Cross-platform", 12],
+];
+
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch {} },
+};
+
+function phaseStatus(p) {
+  const n = p.tasks.filter(t => t[0] === "done").length;
+  if (n === p.tasks.length) return "done";
+  return n > 0 || p.tasks.some(t => t[0] === "doing") ? "doing" : "todo";
+}
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+const LABEL = { done: "Done", doing: "In progress", todo: "Not started" };
+const root = document.getElementById("phases");
+const firstOpen = PHASES.findIndex(p => phaseStatus(p) !== "done");
+
+PHASES.forEach((p, i) => {
+  const st = phaseStatus(p);
+  const n = p.tasks.filter(t => t[0] === "done").length;
+  const key = "zui-reviewed-" + i;
+  const el = document.createElement("details");
+  el.className = "phase";
+  el.open = i === firstOpen || i === firstOpen - 1;
+  el.innerHTML = `
+    <summary>
+      <span class="num">${i}</span>
+      <span class="ptitle">${esc(p.title)}</span>
+      <span class="reviewed" ${store.get(key) ? "" : "hidden"}>reviewed</span>
+      <span class="count">${n}/${p.tasks.length}</span>
+      <span class="pill ${st}">${LABEL[st]}</span>
+    </summary>
+    <div class="body">
+      <p class="goal">${esc(p.goal)}</p>
+      ${p.uses ? `<p class="uses"><b>BeeModel uses it for:</b> ${esc(p.uses)}</p>` : ""}
+      <h3>Tasks</h3>
+      <ul class="tasks">${p.tasks.map(t => `<li class="${t[0]}">${esc(t[1])}</li>`).join("")}</ul>
+      ${p.demo.length ? `<h3>Run it</h3>${p.demo.map(c => `<div class="cmd"><code>${esc(c)}</code><button type="button">Copy</button></div>`).join("")}` : ""}
+      <h3>What to check</h3>
+      <ul class="plain">${p.review.map(r => `<li>${esc(r)}</li>`).join("")}</ul>
+      <label class="review"><input type="checkbox" ${store.get(key) ? "checked" : ""}> Reviewed</label>
+    </div>`;
+  el.querySelector(".review input").addEventListener("change", e => {
+    store.set(key, e.target.checked ? "1" : null);
+    el.querySelector(".reviewed").hidden = !e.target.checked;
+  });
+  el.querySelectorAll(".cmd button").forEach(b => b.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(b.previousElementSibling.textContent);
+      b.textContent = "Copied";
+      setTimeout(() => (b.textContent = "Copy"), 1200);
+    } catch {}
+  }));
+  root.append(el);
+});
+
+const all = PHASES.flatMap(p => p.tasks);
+const done = all.filter(t => t[0] === "done").length;
+const finished = PHASES.filter(p => phaseStatus(p) === "done").length;
+document.getElementById("fill").style.width = (100 * done / all.length) + "%";
+document.getElementById("totals").textContent = `${done} of ${all.length} tasks, ${finished} of ${PHASES.length} phases`;
+document.getElementById("current").textContent = firstOpen < 0 ? "All phases done" : `Next: Phase ${firstOpen}, ${PHASES[firstOpen].title}`;
+document.getElementById("limits").innerHTML = LIMITS.map(l => `<li>${esc(l)}</li>`).join("");
+const ZUI_NOW = { have: "Has it", part: "Partly", none: "Missing" };
+document.getElementById("beemodel").innerHTML = BEEMODEL.map(r =>
+  `<tr><td>${esc(r[0])}</td><td class="where">${esc(r[1])}</td><td><span class="chip ${r[2]}">${ZUI_NOW[r[2]]}</span></td><td class="ph">${r[3]}</td></tr>`).join("");
+const tallyOf = k => BEEMODEL.filter(r => r[2] === k).length;
+document.getElementById("tally").innerHTML =
+  `<span>${BEEMODEL.length} kinds of UI element</span><span>${tallyOf("have")} covered</span><span>${tallyOf("part")} partly</span><span>${tallyOf("none")} missing</span>`;
+document.getElementById("coverage").innerHTML =COVERAGE.map(c => `<tr><td>${esc(c[0])}</td><td>${c[1]}</td></tr>`).join("");
+</script>
+</body>
+</html>

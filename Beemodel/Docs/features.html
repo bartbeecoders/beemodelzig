@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeeModel Zig Progress</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1f23; --muted: #626872; --line: #e1ded8;
+  --done: #2f8f4e; --partial: #c98a12; --todo: #a9adb5; --accent: #e8a317;
+  --chip-done: #e3f3e8; --chip-partial: #fbf0d9; --chip-todo: #eceef1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17191d; --panel: #1f2227; --ink: #e7e9ec; --muted: #9aa1ab; --line: #30343b;
+    --done: #5cc27e; --partial: #e8b04a; --todo: #5d636c; --accent: #f2b134;
+    --chip-done: #1f3527; --chip-partial: #3a3020; --chip-todo: #2a2e34;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17191d; --panel: #1f2227; --ink: #e7e9ec; --muted: #9aa1ab; --line: #30343b;
+  --done: #5cc27e; --partial: #e8b04a; --todo: #5d636c; --accent: #f2b134;
+  --chip-done: #1f3527; --chip-partial: #3a3020; --chip-todo: #2a2e34;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { padding: 28px 16px 8px; max-width: 1100px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+.sub { color: var(--muted); margin: 0 0 18px; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.tile b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.tile span { color: var(--muted); font-size: 12px; }
+.bar { height: 8px; border-radius: 4px; background: var(--chip-todo); overflow: hidden; display: flex; }
+.bar i { display: block; height: 100%; }
+.bar .d { background: var(--done); } .bar .p { background: var(--partial); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.controls input, .controls select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.controls input { flex: 1 1 220px; }
+main { max-width: 1100px; margin: 0 auto; padding: 0 16px 48px; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin: 14px 0; overflow: hidden; }
+section > h2 { margin: 0; padding: 12px 14px; font-size: 15px; display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+section > h2 .name { flex: 1; }
+section > h2 .count { color: var(--muted); font-weight: 400; font-size: 12px; font-variant-numeric: tabular-nums; }
+section > h2 .bar { width: 120px; flex: none; }
+section.closed table { display: none; }
+table { width: 100%; border-collapse: collapse; }
+td { border-top: 1px solid var(--line); padding: 7px 14px; vertical-align: top; }
+td.st { width: 92px; }
+td.ph { width: 52px; color: var(--muted); font-variant-numeric: tabular-nums; }
+td.note { color: var(--muted); font-size: 13px; }
+.chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.chip.done { background: var(--chip-done); color: var(--done); }
+.chip.partial { background: var(--chip-partial); color: var(--partial); }
+.chip.todo { background: var(--chip-todo); color: var(--muted); }
+.legend { color: var(--muted); font-size: 12px; }
+.phases { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 10px 0; font-size: 13px; }
+.phases ol { margin: 6px 0 0; padding-left: 22px; }
+@media (max-width: 640px) { td.note { display: none; } section > h2 .bar { width: 60px; } td.ph { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div style="background:var(--chip-partial);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 14px"><b>History.</b> On 2026-11-14 porting stopped: BeeModel is developed on its own from here, and this list is kept as a record of the assembly BeeModel's features and how far the port had come. Current plans: <a href="beezigui-migration.html">beezigui-migration.html</a>.</div>
+  <h1>BeeModel Zig: feature progress</h1>
+  <p class="sub">Every feature of the x86-64 assembly BeeModel (v1.3, ~378k lines, 1240 operators) and where the Zig port stands. Source of the list: README.md, docs/UI.md, docs/*.md and the operator ids in src/*.s of the assembly repo. Updated with every step. <span id="updated"></span></p>
+  <div class="summary" id="summary"></div>
+  <div class="phases"><b>Order of work</b> (the Ph column):
+    <ol>
+      <li>Shell and UI core: operators, search, tooltips, undo, selection, transforms, themes, keyboard</li>
+      <li>Editors and viewport UI: header, shading, pies, wheel, outliner, properties, colour picker, preferences, file browser</li>
+      <li>Files: .bee, OBJ, STL, glTF, PNG, recent files, autosave</li>
+      <li>Mesh editing and modelling tools</li>
+      <li>Modifiers</li>
+      <li>Materials, shading and rendering</li>
+      <li>Animation and rigging</li>
+      <li>Sculpt, paint, UV</li>
+      <li>CAD and fabrication</li>
+      <li>Physics and simulation</li>
+      <li>Node editors and procedural</li>
+      <li>AI, MCP, BeeScript</li>
+      <li>Collaboration, world, platform</li>
+    </ol>
+  </div>
+  <div class="controls">
+    <input id="q" type="search" placeholder="Filter features...">
+    <select id="st"><option value="">Every status</option><option value="done">Done</option><option value="partial">Partial</option><option value="todo">To do</option></select>
+    <select id="ph"><option value="">Every phase</option></select>
+  </div>
+  <div class="legend"><span class="chip done">Done</span> works as in the original &nbsp; <span class="chip partial">Partial</span> part of it works (the note says what is missing) &nbsp; <span class="chip todo">To do</span> not ported yet</div>
+</header>
+<main id="list"></main>
+<script>
+// [category, [[feature, status, phase, note], ...]]
+// status: d = done, p = partial, t = to do
+const UPDATED = "2026-11-13";
+const DATA = [
+["Window and platform", [
+ ["Wayland client over the raw wire protocol (no libwayland, no libc)", "d", 1, "src/wayland.zig"],
+ ["Client-side title bar: logo, title, minimize, maximize / restore, close", "d", 1, ""],
+ ["Drag title to move, double-click to maximize", "d", 1, ""],
+ ["Resize from the window edges, cursor shapes", "d", 1, "wp_cursor_shape_v1"],
+ ["Frame callbacks, double-buffered shm, draws only when something changes", "d", 1, ""],
+ ["Key repeat", "d", 1, ""],
+ ["XKB keymaps: shortcuts follow the keyboard layout (AZERTY ...)", "d", 1, "own XKB text parser (keycodes, symbols, 4 levels), AltGr, caps lock, dead keys, UTF-8 input; tested with fr and de keymaps"],
+ ["TrueType UI text and HiDPI (fractional scale)", "d", 2, "own TrueType engine; fractional scale through wp_fractional_scale and viewporter; per-monitor scale not tested on real screens"],
+ ["UI scale 75-200%", "d", 2, "fonts rasterized again at the scale, not stretched"],
+ ["Clipboard (wl_data_device): copy / paste text and values", "d", 2, "copy and paste both ways through wl_data_device; tested on a fake compositor"],
+ ["Files dropped on the window open by their kind", "d", 3, "open by their kind; tested on a fake compositor only"],
+ ["Panels in windows of their own (other monitor)", "p", 2, "real extra windows; tested on a fake compositor only, dragging a panel out not tested"],
+ ["Windows 11 platform layer (Win32, no CRT)", "t", 13, ""],
+ ["Headless test mode (scripted input, screenshot)", "d", 1, "--shot; the original uses fakewl tests"],
+ ["Self-test (--selftest)", "p", 1, "the checks that apply; no arena, pool, JIT, SipHash or DAG checks"],
+ ["Verification: scenarios, fuzzing, benchmarks (tests/verify.sh)", "d", 1, "47 scripted scenarios to PNG, two random-input fuzzers on the debug build, frame-time benchmarks"],
+]],
+["Menu bar and commands", [
+ ["Menu bar: File, Edit, View, Select, Add, Object, Mesh, Render, AI, Help", "d", 1, "the original's menus, generated from its sources; unported entries greyed with the reason"],
+ ["Submenus", "d", 1, ""],
+ ["Hover switches between open menus", "d", 1, ""],
+ ["Keyboard menus: F10, Alt+letter, arrows, Enter, Esc one level", "d", 1, ""],
+ ["Greyed items say why (tooltip, click shows it in the status bar)", "d", 1, ""],
+ ["Operator registry: every command has an id, label, shortcut, poll and run", "p", 1, "all 692 operators in src/catalog.zig (generated); 237 implemented so far"],
+ ["F3: search every command", "d", 1, ""],
+ ["F1: every shortcut, searchable", "d", 1, "generated from the catalog; unported ones greyed"],
+ ["Tooltips: name, shortcut, what it does, why greyed", "d", 1, ""],
+ ["Dialogs with forms for commands that need values (remembered)", "d", 2, "7 forms, values remembered; forms for file commands not needed (the file browser)"],
+ ["Save changes? on New / Open / Exit", "d", 3, "also on closing the window"],
+ ["Welcome screen: default / empty scene, templates, samples, recent, keymap", "p", 2, "Default and Empty scenes, Character and Product templates, recent files, Start a Sketch; Terrain, Tree and Ball are greyed until their phases"],
+ ["About dialog", "d", 1, ""],
+]],
+["Areas, docking and workspaces", [
+ ["Binary split tree of areas, drag splitters", "d", 1, ""],
+ ["Split side by side / top-bottom, close, maximize (Ctrl+Space)", "d", 1, ""],
+ ["Change the editor from the header", "d", 1, ""],
+ ["Dock: drag a header onto another area's side", "d", 1, ""],
+ ["Dock in the middle swaps the two areas", "d", 1, ""],
+ ["Join two areas: drag the top-left corner into the neighbour", "d", 1, ""],
+ ["Float an area as a panel: move, resize, raise, dock button", "d", 1, ""],
+ ["Five dock guides while dragging a panel over an area", "d", 1, ""],
+ ["Right-click header menu (Float, Dock, New Window, Split...)", "d", 1, "Float, Dock, New Window, Split"],
+ ["Each viewport keeps its own camera", "d", 1, ""],
+ ["F6 / Shift+F6 active area ring", "d", 1, ""],
+ ["Workspaces: Modeling, Sculpt, CAD, Shading, Animation, World", "d", 1, ""],
+ ["Own workspaces (+), rename, delete, Ctrl+PageUp / PageDown", "d", 1, ""],
+ ["Workspaces saved in .bee and remembered", "d", 3, "WSPC through the original byte for byte; opening a file brings its window layout"],
+]],
+["Status bar and feedback", [
+ ["Key hints for what the mouse and keys do now", "d", 1, "key chips per context (viewport, outliner, menus, transforms)"],
+ ["Scene size, AI permission, render progress, peers", "p", 1, "scene size, ported commands, the live link and co-editing chips; the AI permission and render progress chips to check against the original"],
+ ["Frame rate (idle when nothing moves)", "d", 1, ""],
+ ["Toasts: green results, amber problems, click opens the console", "d", 1, ""],
+ ["Job chips with progress, elapsed and remaining time", "d", 6, "the chip with percent, a bar (gliding when unknown), elapsed and time left: renders, open, save, import, export, Apply, booleans, bakes, animations; run from the main loop with frames during them. Saving from 'Save changes?' runs in place, without a chip: what you asked for comes right after it"],
+]],
+["Keyboard and accessibility", [
+ ["Tab / Shift+Tab focus ring through widgets; Enter / Space; arrows step", "d", 2, "through the widgets; Enter / Space; arrows step"],
+ ["Keymap preferences: set, clear, reset, conflict warning", "d", 2, "set, clear, reset, conflict warning"],
+ ["Blender 4.x keymap preset", "p", 2, "the preset is in; only its key labels are tested, not each key firing"],
+ ["Contrast at least 4.5:1 in every theme", "d", 1, "the original's nine palettes; text on the accent picks black or white"],
+ ["Colour-blind-safe axis colours (Okabe-Ito)", "d", 2, ""],
+ ["Reduce motion (views jump instead of glide)", "d", 2, ""],
+ ["ui_tree: list every widget (for agents and tests)", "d", 1, "--dump-ui in the headless driver; agents and tests click widgets by label"],
+]],
+["Themes and look", [
+ ["Dark theme (BeeModel's palette)", "d", 1, ""],
+ ["Light, Nord", "d", 1, ""],
+ ["High contrast, Honey, Graphite, Solarized Dark, Solarized Light, Dracula", "d", 1, "generated from the original's theme.s"],
+ ["Accent colour of your own (Theme's Accent resets)", "d", 1, "Preferences > Interface picker, Theme's Accent, console accent"],
+ ["Theme list shows a strip of each theme's colours", "d", 2, "Properties > Scene"],
+ ["Theme kept in the preferences", "d", 2, ""],
+]],
+["Widgets", [
+ ["Buttons, checkboxes, icon buttons", "d", 1, ""],
+ ["Number fields: drag to scrub, click to type", "d", 1, ""],
+ ["Shift finer, Ctrl snapped steps, Ctrl+wheel steps", "d", 1, ""],
+ ["Expressions and units in fields (25mm, 2*pi, width/2)", "p", 1, "numbers, units, pi, functions; CAD parameters come with CAD"],
+ ["Text fields: Ctrl+Left / Right word jump, selection, Ctrl+Backspace", "d", 1, "caret, selection, word jumps, UTF-8, dead keys, the system clipboard"],
+ ["Field context menu: Reset to Default, Copy / Paste Value, Insert Keyframe, Copy Data Path", "d", 2, "Reset to Default, Copy / Paste Value, Copy Data Path (transforms and materials), Insert Keyframe"],
+ ["Folding sections", "d", 2, ""],
+ ["Colour picker: SV square, hue strip, old / new, hex, R G B, H S V, eyedropper, recent, scene colours", "d", 2, "SV square, hue, old / new, hex, eyedropper, R G B, H S V, recent (saved), scene colours"],
+ ["Pickers for objects, materials, node trees", "d", 2, "objects and materials; node trees in the node editor's header and the Modifiers tab's Tree fields"],
+]],
+["Selection and transforms", [
+ ["Click to select in viewport and outliner", "d", 1, ""],
+ ["Multi-selection: Shift extends, A all / none, active gold, selected orange outline", "d", 1, ""],
+ ["Delete (X / Del), duplicate (Shift+D)", "d", 1, ""],
+ ["Modal G / R / S with X / Y / Z axis lock", "d", 1, ""],
+ ["Ctrl snaps, typed values (G X 2 Enter), Enter / LMB confirm, Esc / RMB cancel", "d", 1, ""],
+ ["Move / Rotate / Scale tools with draggable gizmos", "p", 1, "the tools drag the selection; no gizmo handles yet"],
+ ["Pivot point: median, 3D cursor, individual origins, active", "d", 2, "all four work: the viewport header's button, view.pivot_* in F3"],
+ ["Orientation: global, local, view, normal", "d", 2, "normal = local for objects"],
+ ["3D cursor: Shift+right-click on surface / ground; new objects go there", "d", 2, "on the surface under the pointer (depth buffer), else the ground; new objects go there"],
+ ["Shift+S cursor and snapping pie", "d", 2, ""],
+ ["Snapping toggle", "d", 2, "view.toggle_snap"],
+ ["Hide (H) / reveal (Alt+H)", "d", 1, ""],
+ ["Parenting: Ctrl+P, Alt+P, children follow", "d", 2, "world matrices; transforms skip children of selected parents; deleting a parent re-parents its children"],
+ ["Undo / redo of every change (Ctrl+Z / Ctrl+Shift+Z), one drag is one step", "d", 1, "whole-scene snapshots, 128 steps"],
+ ["Undo history list", "d", 2, "Edit > Undo History (F3)"],
+ ["Redo panel: values of the last tool, F9", "d", 4, "7 tools, F9; 6 of them compared with the original's meshes"],
+]],
+["3D viewport", [
+ ["Software rasterizer, solid shading, z-buffer", "d", 1, "near-plane clipping, perspective-correct depth, incremental edges, per-object view culling, open meshes two-sided, image cache per viewport; single-threaded"],
+ ["Multithreaded rasterizer", "d", 2, "bands on every core at 16,384 triangles and up, images identical to one core: 980k triangles at 1440p 44.9 -> 12.1 ms; smaller scenes stay on one core"],
+ ["Wireframe (Z)", "d", 1, ""],
+ ["Material Preview (Shift+Z): full material under a studio environment", "d", 6, "the original's preview.s model (split-sum sky / ground, three softboxes, clear coat, transmission, ACES): pixel values match the original's; corner normals smoothed under 30 degrees; rows on every core"],
+ ["Rendered shading (GPU helper / path traced)", "d", 6, "GPU raycast, samples, denoise per live.s (raycast 0.5 ms vs the original's 3 ms); on the CPU without the helper: samples when still, motion samples; rendered_samples / denoise / motion / playback preferences"],
+ ["Orbit, pan, zoom", "d", 1, ""],
+ ["Navigation gizmo: click an axis, drag a ball to orbit", "d", 1, "click a ball, drag to orbit"],
+ ["Gizmo zoom / pan handles, ortho toggle, camera button", "d", 2, ""],
+ ["Numpad 1 / 3 / 7 (Ctrl opposite), 5 ortho, 0 camera view, . frame selected", "d", 2, "1 / 3 / 7 / 5 / 0 / . and Ctrl"],
+ ["Views glide to their target", "d", 2, "260 ms ease; reduce_motion jumps"],
+ ["Camera view with render frame, Camera to View", "d", 2, "Numpad 0, the frame dimmed outside, orbit leaves from the camera; Camera to View (Ctrl+Alt+Numpad 0)"],
+ ["Ground grid (Shift+G) with axes", "d", 1, ""],
+ ["Viewport header: mode, select mode, shading, grid, snap, pivot, overlays", "d", 2, "mode menu, select modes, View / Select / Object, the four shadings, grid, snap, pivot / orientation, overlays, mesh checks"],
+ ["Overlays: grid, corner text, statistics, gizmo, mesh checks", "d", 2, "grid, text, statistics, gizmo, mesh checks"],
+ ["Z shading pie, Ctrl+Tab mode pie", "d", 2, "hold 200 ms; a tap keeps Z = wireframe; Shift+S snap pie too"],
+ ["Right-click wheel menu with groups and numbers", "d", 2, "object and edit-mode wheels with groups and number keys, as wheel.s"],
+ ["Quick actions in an empty scene", "p", 2, "as the original where their commands exist; the rest greyed with the reason"],
+ ["Selection outline", "d", 1, "active gold, selected orange, one pass over the id buffer"],
+ ["Camera and light icons", "d", 1, ""],
+ ["Reference images (opacity, behind / front, sides, ortho only, square-on)", "d", 6, "object.add_reference, opacity, behind / front, sides, ortho only, square-on, picking, the panel: side by side with the original"],
+ ["Reference images from a folder / PDF set", "d", 6, "sets report line by line as the original; places, flags, folders match its .bee; PDFs through poppler as the original. Folders show in the outliner with the Folders row"],
+ ["AI line-up of a reference set (object.references_ai)", "d", 12, "refset.zig: reference_view exact, the line-up prompt the original's"],
+ ["Measure tool (Shift+M)", "d", 9, "Shift+M with vertex snapping, distance and angle as the original; mass properties identical in every unit and density"],
+ ["Screenshot (Shift+F12) as PNG", "d", 3, "the original's PNG format"],
+]],
+["Outliner", [
+ ["Rows with type icon, name (gold when active), eye toggle, scroll", "d", 1, ""],
+ ["Lock and render (camera) toggles", "d", 2, ""],
+ ["Ctrl+click toggle, Shift+click range", "d", 2, ""],
+ ["Children indented under parents, fold arrows", "d", 2, ""],
+ ["Drag a row onto another to parent, onto empty space to free", "d", 2, "with a label at the pointer; loops refused"],
+ ["Rename: double-click or F2", "d", 2, ""],
+ ["Filter field", "d", 2, "filters as you type; Tidy / AI / folder greyed"],
+ ["Folders (Ctrl+G) with eye, camera, lock, colours", "d", 2, "outliner rows with eye, camera, lock, colours; FOLD both ways; Tidy not yet"],
+ ["Tidy, Tidy with AI", "d", 12, "outfolders.zig: Tidy exactly as the original (FOLD colours now indices, byte for byte); Tidy with AI's prompt the original's"],
+ ["Right-click row menu", "d", 2, ""],
+]],
+["Properties", [
+ ["Tabs down the left side", "p", 1, "the original's ten icon tabs; Object, Modifiers, Material, Scene, Render, Viewport, Animation, Rig and CAD ported; Physics with its phase"],
+ ["Object: name, location, rotation, scale, visible, colour", "d", 1, ""],
+ ["Object: parent, light power / colour / type / size / cone, camera lens", "d", 2, "parent picker, light type / power / colour / size / cone, camera lens, Render from This Camera"],
+ ["Modifiers tab", "d", 5, "the stack with on / off, order, Apply, remove and every value; Boolean's object picker; scrolls with a long stack; Multires and Armature work; Geometry Nodes and Logic are listed, greyed, until their phases"],
+ ["Material tab (principled values)", "d", 6, "as the original's Material tab, with Texture Set..., New Instance and Bake to Maps"],
+ ["Physics, Particles, Landscape, CAD tabs", "p", 10, "Physics tab (rigid body, joints, shatter, force field, cloth, world, cache) and Particles tab as the original's window; Landscape tab with landscapes (phase 11)"],
+ ["Scene tab: units, sky, strength, frame range", "d", 2, "units, World (sky, strength, turn), frame range (anim.range, ANIM chunk)"],
+ ["Render and Viewport tabs", "d", 6, "Render tab: size, samples, denoise, Render (F12), Save Render..., bounces, Device, Light Probes, Lightmap, Virtualized Geometry; RNDR saved in .bee; Viewport tab with Rendered shading's settings in Preferences"],
+ ["Animation and Rig tabs", "d", 7, "Both tabs done, the Add Constraint form reaches IK (armature:bone) and the Limit kinds"],
+]],
+["Editors", [
+ ["3D Viewport, Tools, Outliner, Properties, Console, Timeline", "d", 1, ""],
+ ["Console: commands, history, log", "d", 1, "BeeScript, operator ids, Tab completion, history; the echo stays \"> line\" (older tests read it)"],
+ ["Timeline: play, step, frame range", "d", 1, "keys, auto-key, play, step, frame range"],
+ ["Dope Sheet", "d", 7, "menus, shortcuts, selection; box select is the port's own, the original has none"],
+ ["Graph Editor", "d", 7, "menus, shortcuts, handles, selection"],
+ ["Node Editor", "d", 11, "nodeed.zig: shader, geometry-node and logic graphs; add menu, linking, knife, reroutes, frames, groups / functions, copy-paste, preview pane, thumbnails, node details; 35 edits byte for byte with the original's window, every node type within 1 px; 293 checks, 33 mutants"],
+ ["UV Editor", "d", 8, "Area, layout, grid, island select, G/S/R, area and angle heat maps, texture under the layout, texture paint strokes in UV space; pixel-identical to the original maximized, same undo steps"],
+ ["Render editor (zoom, pan, passes, save)", "d", 6, "zoom about the pointer, drag pan, Home fits, the four passes, Save Render..., status line with the device"],
+ ["Asset Browser (local and online libraries)", "d", 11, "libui.zig: tiles, thumbnails, details, search, online tiles 0 px from the original's window; double-click / drag to place, tile menu"],
+ ["AI Activity, AI Assistant", "d", 12, "ai.zig: the AI Assistant editor and workspace (Ctrl+Shift+Space), transcript, growing prompt, Send / Stop, Revert, status chip; AI Activity from agent.zig"],
+ ["Versions editor", "d", 13, "versions.zig: Versions, Branches, Merge Conflicts, History, Collaboration and Live Link sections; widget geometry the original's (ui_tree)"],
+ ["Preferences (dialog and editor): Interface, Viewport, Input, Keymap, Rendering, System, Files, AI", "p", 2, "Interface, Viewport, Input, Keymap, Rendering, System, Files, and the Preferences editor as an area; the JIT, library folders, Blender program and AI greyed until their phases"],
+ ["Help editor (about whatever the pointer rested on)", "d", 2, "about whatever the pointer rested on"],
+ ["Tools area follows the mode", "p", 1, "object and edit mode"],
+]],
+["Files", [
+ [".bee save / open (Ctrl+S / Ctrl+O), version-stable format", "p", 3, "every chunk the port has features for, both ways; saving over a file with parts it doesn't keep asks first. It reads compressed files (ZCHK) but writes them plain"],
+ ["File browser: columns, sort, places, favourites, drives, recent, filter, hidden, previews, Tab completion", "p", 3, "folders first, name / size / date columns with sorting, crumbs, back / forward / up, places, recent folders, filter, hidden files, all files, Tab completion, overwrite confirm; no thumbnails, favourites or drives yet"],
+ ["Open Recent (last eight)", "d", 3, "saved in the preferences"],
+ ["Autosave every 25 changes, file.recover", "d", 3, "the 25th change as the original's; 40 kill -9 mid-write left whole files; never the user's file; offered at the next start"],
+ ["OBJ import / export with MTL", "p", 3, "OBJ and MTL byte-identical to the original's; options work; procedural graphs export no maps (the original bakes them)"],
+ ["STL import / export", "d", 3, "binary or ASCII in, welded; binary out"],
+ ["glTF 2.0 (.glb / .gltf) with PBR materials", "t", 3, ""],
+ ["Blender .blend import (2.80-5.x), export through Blender", "t", 3, ""],
+ ["OpenUSD (.usd, .usda, .usdc)", "t", 3, ""],
+ ["STEP import / export (AP214, assemblies)", "d", 9, "Import and export byte-identical to the original, assemblies included; KR600 robot 253 s vs 285 s; Esc stops an import between solids (the original can't stop it at all)"],
+ ["3MF, DXF, SVG, PDF drawings", "p", 9, "3MF, DXF, SVG and PDF byte-identical to the original; drawing options only from the console, no file browser rows yet; PDF of subdivided meshes differs in edge order"],
+ ["PNG, JPEG, HDR read; PNG, EXR write", "d", 6, "0 of 511,552 samples differ from the original; as the original: no progressive or CMYK JPEG; fuzzed"],
+ ["Thumbnail of the viewport in each saved .bee", "d", 3, "THMB in each save; the file browser does not show them yet"],
+ ["Scenes beyond 250 objects", "d", 3, "up to 8192 objects, 4096 round trip; the original's 598 MB factory opens whole"],
+]],
+["Objects and primitives", [
+ ["Cube, UV sphere, cylinder, plane, light, camera", "d", 1, "real polygon meshes (quads, n-gon caps) in a mesh store, as the original"],
+ ["Cone, torus, grid, ground (endless floor)", "p", 4, "meshes byte-identical to the original's; the ground's fading grid is in, its shadow catcher and rigid body wait for phases 6 and 10"],
+ ["Bezier curve, Bezier circle, path", "d", 11, "curve.zig / curveui.zig: geometry bit for bit, CURV byte for byte (MESH-chunk order), edit mode, panel, undo, files, curve nodes"],
+ ["3D text from TrueType fonts (letter-by-letter animation)", "d", 11, "text3d.zig / ttfol.zig / textui.zig: meshes bit for bit over 6 fonts and the block font, TEXT bytes, animation, undo, panel; 2x the original's speed; script text() / text_set() wait for BeeScript"],
+ ["Empty scene templates: CAD product, rigged character, terrain", "d", 2, "Default, Empty, rigged character, CAD product, terrain and the L-system tree (the Bouncing Ball sample still greyed)"],
+]],
+["Mesh editing", [
+ ["Edit mode (Tab), vertex / edge / face select (1 / 2 / 3)", "d", 4, "drawn as the original (wires, orange selection, face tint, 4/6 px dots, face-centre dots), hint line, header with Mesh menu, edit Tools list, selection kept with the mesh across Tab"],
+ ["Box select (B), edge loop (Alt+click), linked (Ctrl+L), invert (Ctrl+I)", "d", 4, "B then drag (Ctrl subtracts), Alt+click edge loops through four-edged vertices, Ctrl+L, Ctrl+I, A"],
+ ["G / R / S on the selection", "d", 4, "a working copy, committed on confirm; pivots, orientations, typed values"],
+ ["Extrude (E), extrude individual (Alt+E), inset (I)", "d", 4, "region extrude moves along the normal; inset and individual extrude take the mouse or a typed value"],
+ ["Delete, dissolve (Ctrl+X), merge (M), fill (F), duplicate, recalc normals", "d", 4, "merge at centre, collapse and by distance; dissolve faces / edges / vertices; Shift+N orients whole parts"],
+ ["Loop cut (Ctrl+R), bevel (Ctrl+B), knife (K)", "d", 4, "loop cut with wheel cuts and preview; bevel drags the width, wheel = segments (rounded, capped corners, closed results); knife: click points, Enter cuts the faces facing you"],
+ ["Subdivide, flip normals, bisect, bridge edge loops, spin", "d", 4, "bisect (console: point and normal, default through the 3D cursor), bridge two boundary loops, spin (steps, degrees, axis about the 3D cursor)"],
+ ["Separate loose", "d", 4, ""],
+ ["Booleans (exact predicates): union, difference, intersect", "d", 4, "bool.s ported: exact predicates, symbolic perturbation; 30,000 operations matched the original on faces, closedness, volume; Edit > Boolean, keep; fixes the original's leftover faces on cone A - A"],
+ ["Analysis overlays: normals, non-manifold, boundary, degenerate, overhangs", "d", 4, "normals, non-manifold, boundary, degenerate, overhangs: 100 of 100 random meshes count as the original; thin walls (red / yellow, counted in the legend)"],
+ ["Repair mesh", "d", 4, "merge by distance, degenerate / duplicate faces, holes filled, normals recalculated, with a report"],
+]],
+["Modifiers", [
+ ["Stack: add, on / off, up / down, apply, remove", "d", 5, "8 per object, as the original's 48-byte records: MODS both ways with the original (same evaluated faces), undo, Ctrl+2; drawn, rendered and exported evaluated; a failing modifier passes the mesh on and says so; types not ported yet survive load and save"],
+ ["Mirror, Array, Solidify, Bevel, Decimate, Remesh", "d", 5, "651 of 654 comparisons bit-identical to the original over 16 meshes; where the original overruns its loop buffer (solidify, some bevels) the port keeps the polygons whole"],
+ ["Subdivision surface (cached, parallel)", "d", 5, "Catmull-Clark, plan cached per topology, every core: level 3 of 100k quads 50 ms a change (17 ms without the copy, the original's 17.4 ms)"],
+ ["Boolean modifier", "d", 5, "follows the other object, as the original; the same faces as the original through the app (561 / 427 / 418 on a test)"],
+ ["Multires", "d", 8, "Levels, Subdivide, Propagate, sculpting at a level, Apply; MRES and MODS bytes equal to the original's"],
+ ["Armature, Geometry Nodes, Logic modifiers", "d", 11, "Geometry Nodes modifier with its tree picker; Logic with the picker; Armature from phase 7"],
+]],
+["Materials and rendering", [
+ ["Principled material: base, metallic, roughness, specular, IOR, transmission, emission, clearcoat, alpha", "d", 6, "the original's 15 values (base, metallic, roughness, specular, IOR, transmission, emission and strength, clear coat and its roughness, alpha, density, blend mode, one-sided, mask clip); MATS / OMAT round trip; node graphs (MGRF) evaluated in renders, their editor comes with phase 11"],
+ ["Material slots, new, assign, presets (20)", "d", 6, "Material tab as the original's (slot list, New, Preset..., labelled sliders, colour picker); material.new / assign / set / remove / preset / apply_preset; the right-click wheel's materials; undo; the procedural presets (wood, marble ...) run their pattern graphs"],
+ ["Shader node graphs (42 node types), functions, instances, parameters", "d", 11, "every node's outputs bit for bit, MGRF / MATS byte for byte, make_function (a loop refused: the original loses the graph), constant folding, instances; Material Preview within 167 of 53k graph pixels (White Noise needs the original's view basis)"],
+ ["Texture images, PBR texture sets, bake to maps", "d", 6, "MUVS, shader graphs in Hive and Material Preview (0 of 8150 values differ from the original), procedural presets, instances, texture sets, bakes (6 of 7 maps byte-identical); renders within the original's own noise; a port-saved .bee renders identically in the original. MTL map_* and bake undo not yet"],
+ ["Hive path tracer (CPU, every core)", "d", 6, "hive.s / hive_pt.s ported: SAH BVH, NEE + MIS over sky, studio sun, point / sun / spot / area lights and emissive triangles, principled BSDF with rough glass and clear coat, Russian roulette, firefly clamp; renders match the original's within sample noise (incl. its numeric clamps); worker threads (the build is multi-threaded now)"],
+ ["F12 render into a Render area, refining; Esc stops", "d", 6, "a Render area opens beside the viewport; time slices per main-loop turn keep the UI live; status line, wheel zoom about the pointer, drag pan; render.start / stop / pass / settings / save / denoise / view_fit"],
+ ["Denoiser (albedo / normal / depth guided)", "d", 6, "denoise.s ported: demodulated a-trous wavelet, 5 passes, variance from luminance moments; on by default when a render ends"],
+ ["Passes: beauty, albedo, normal, depth; save PNG / EXR", "d", 6, "PNG and EXR (linear half floats, ZIP)"],
+ ["Render animation to video (ffmpeg / APNG / frames)", "d", 6, "frames, .png, .apng, mp4 / mkv / webm / gif through ffmpeg, Esc keeps the frames; frames move with keys, within 0.15-0.27 / 255 of the original's"],
+ ["World: studio sky, sun, HDRI, strength, rotation", "d", 6, "env.s ported: 2D CDF importance sampling with MIS, SH irradiance and blurred reflections in Material Preview, WRLD and IMGS in .bee, Scene > World, world.hdri / strength / rotation; matches the original's render within sample noise (MAE 0.2% over strengths and turns)"],
+ ["Lights: point, sun, spot, area", "d", 6, "lit as the original's tracer (power x 80, sun x 3, spot fade, area squares); viewport shapes shine along local -Z as the original's"],
+ ["GPU helper (Vulkan, beemodel-gpu)", "d", 6, "beemodel-gpu in Zig, separate and optional (the main binary stays static): F12 compute and RTX, graphs, textures, HDRI, viewport (view.vert / frag), raster.comp on DAG frames, render.device, hostmem; CPU within noise; 1080p 128 spp 0.34 / 0.56 / 0.89 s vs the original's 0.35 / 0.60 / 0.88; survives a killed or hung helper. Liquids wait for liquids (phase 10)"],
+ ["Light probes and lightmaps", "d", 6, "probe.* and lightmap.*, bakes on Hive, Material Preview lookups, Render tab panels; PRBE and LMAP both ways with the original; error against the original equals the original's own run-to-run noise (irradiance 0.6-0.7%, atlas 4.6% vs 3.8%); glTF lightmap export waits for glTF, scripting for BeeScript"],
+ ["Virtualized geometry (cluster LOD DAG)", "d", 6, "cluster LOD DAG, CPU cuts, occlusion, streaming, background build with chip, panel; VGEO byte-identical to the original's but for its radii bug; 65M triangles 1073 -> 2.5 ms a frame at 1440p, no silhouette error past 1 px, no cracks. The GPU tile path is excluded (the CPU is the reference); vgeo.extract uncoloured; graph materials draw the full mesh in Material Preview"],
+]],
+["Animation and rigging", [
+ ["Keyframes (I), auto-key, interpolation, handles", "d", 7, "7,000+ sampled values against the original, worst 1.1e-7; ANIM identical but for its capacity bookkeeping; undo"],
+ ["Actions, layers, drivers, shape keys", "d", 7, "MSHK both ways, shape-key vertices within 5e-13; drivers use the original's expr.s (radians), not field expressions; channels of nodes, parameters, fields and text are saved, not evaluated, until their systems exist"],
+ ["Onion skins, motion paths", "d", 7, "objects; bone paths come with the rig"],
+ ["Armatures: edit bones, pose, auto weights", "d", 7, "Add, extrude, delete, pose, FABRIK and CCD IK, Armature modifier (LBS, DQS), keyed poses, bone paths; matrices identical, skin within 5e-13, heat weights and ARMT byte-identical to the original. Weight paint is phase 8"],
+ ["Constraints: copy, track, limit, child of", "d", 7, "Copy, track, limit, child of, IK; within 3e-6 of the original"],
+]],
+["Sculpt, paint and UV", [
+ ["Sculpt brushes: draw, clay, crease, flatten, grab, inflate, layer, mask, pinch, smooth, snake", "d", 8, "All 11 brushes, Ctrl / Shift, mask; vertices bit-exact with the original on one CPU; strokes as fast or faster up to 32M vertices"],
+ ["Symmetry, falloff, pressure, stabilizer, dynamic topology", "d", 8, "Symmetry, 6 falloffs, tablet pressure, stabilizer, dynamic topology (Ctrl+D, detail finer / coarser); dyntopo triangles byte-equal to the original's"],
+ ["Texture paint, vertex colours, weight paint, layers", "d", 8, "Texture, vertex and weight paint, 16 layers (normal / multiply / add), UV-space strokes; texels, colours, weights and stacks bit-identical to the original on one CPU; MVCL, ILAY, MWGT both ways"],
+ ["UV unwrap, smart project, pack, seams, stretch heat map", "d", 8, "LSCM, smart project, pack, seams, measures, all 12 uv.* operators; MUVS both ways, UVs and seams bit-identical to the original (500k polygons included)"],
+ ["Baking: normal, AO, curvature", "d", 8, "Bake Maps form, one paint step per bake, bakes into paint layers; 10 of 12 maps exact against the original, 2 within 1%"],
+]],
+["CAD and fabrication", [
+ ["Parameters with expressions and units", "d", 9, "Units and parameters with expressions (\"10*wall + 2mm\", \"sin(30deg)\"); CADD byte-identical to the original, undo, damaged files; number fields commit through the same expressions as the original (units, radians, degree fields)"],
+ ["Sketches: lines, circles, rectangles, constraints, dimensions, solver", "d", 9, "Sketch objects, sketch mode (L / O / R, drag, 19 constraint types, dimensions with expressions), the solver bit-exact with the original; SKCH both ways; a click on a point selects it (the original can't)"],
+ ["Features: pad, pocket, revolve, hole, shell, fillet, chamfer, patterns, infill", "d", 9, "All ten feature types with the feature tree and the CAD tab; meshes as the original's, rebuilds about 18 ms vs 22-31 ms; with the kernel on, bodies are B-rep solids with real fillets and chamfers (the original segfaults on some chains the port builds)"],
+ ["B-rep kernel (NURBS, analytic surfaces, booleans)", "d", 9, "NURBS and analytic surfaces, surface intersection, booleans and tessellation as the original; booleans 399 ms vs 892 ms; damaged solids neither crash nor hang"],
+ ["Mechanisms (joints)", "d", 9, "Revolute and slider joints, gears, racks, limits, parameter channels, collisions and mates (asm.mate); 30 random chains byte-identical with the original; 0.5 ms a frame vs 3.4 ms; the CAD tab rows and the joint form"],
+ ["Print check, thin walls", "d", 9, "Walls, overhangs and size identical to the original (last digit can differ on turned objects); Print Check panel with Show buttons and Check Again; thin-wall overlay"],
+ ["Signed-distance shapes", "d", 9, "The whole F-rep kernel, meshes bit-identical (13 shapes, about 590k triangles); the SDF builtins (bs_sdf.zig) against the original"],
+]],
+["Physics and simulation", [
+ ["Rigid bodies: shapes, materials, joints, world settings", "d", 10, "rbody / rbshape / rbnarrow / rbsolve / collide / clip / nbody: every shape, material, joint (limits, motors, breaking), world setting, attraction and field; object places and rbinfo bit for bit with the original per frame (threads and release too); 200 boxes 2.4 ms vs 2.7 ms a frame. Landscape / instance / runtime shatter hooks wait for their layers"],
+ ["Cloth and soft bodies", "d", 10, "cloth.zig: XPBD stretch / bend / volume, pins, colliders and the Ground, self collision, wind and fields, substeps; vertices bit for bit with the original (threads too), cache and MPIN both ways; 81x81 cloth 25 ms vs 38 ms a frame. Landscape colliders wait for landscapes"],
+ ["Particles and liquid (presets)", "p", 10, "particles / liquid / partsurf / partdraw: emission (faces, volume, vertices, point, fill, events), fields, Ground / rigid / cloth collisions, events and spray, six presets, PBF liquid with rigid bodies, the surface and its export; bit for bit with the original (threads too), PSYS and cache both ways; 10k particles 2.0 vs 4.1 ms. Objects draw mode (instancing), particles in renders and the GPU liquid to do"],
+ ["Force fields (attractor, wind, vortex ... presets)", "d", 10, "fields.zig / fieldui.zig: six types, four presets, groups, keyed strength, FLDS, arrows / lines overlay and gizmos; pulls bit for bit with the original, damaged chunks as the original"],
+ ["Shatter", "p", 10, "shards, bricks, balls, presets, glue, pieces bit for bit while simulated (world places, ear_tris), shatter on impact at run time (rbimp.zig) with the cache; the preview to do"],
+ ["Simulation cache and bake", "p", 10, "simcache.zig: the four channels, sim.bake / free / cache, staleness, SIMC byte for byte both ways; rigid bodies use it, cloth and particles still to come"],
+ ["Play mode (F5), logic graphs", "p", 10, "play.zig / logic.zig / ntree.zig: walk and fly (capsule, steps, slopes, riding, planets), keys, HUD, locked pointer, restore; logic VM with every node, NTRE; bit for bit with the original; 200 bodies 0.315 vs 0.310 ms a step. Node editor (phase 11), the Shatter node and the Render tab Play section to do"],
+]],
+["Procedural and world", [
+ ["Geometry nodes with fields (VM and JIT)", "d", 11, "fieldvm / geonodes: every node and mode bit for bit against the original's JIT, SSE and interpreter; 2-10x faster; 47 mutants"],
+ ["Scattering, instancing, node groups, assets", "d", 11, "distribute, instance on points, groups (8 levels), inst.zig drawing and path tracing, particles as objects, rigid instances; assets (.beea) byte for byte both ways"],
+ ["Landscapes: layers, erosion, paint layers, sea", "d", 11, "landscape / lsculpt / landio / landui: LAND byte for byte, all layers, brushes, paints, sea with the water material, heightmap I/O; colliders for rigid bodies (and buoyancy), cloth and particles bit for bit; world partition tiles and the import / export file forms not in the port"],
+ ["World partition", "d", 13, "world.zig: world.partition / radius / budget / update / minimap, cell files and WRLP byte for byte both ways, streaming by camera and budget the same, minimap pixel-identical, world.bees the same; 1.12x on world.bees, 1.4x on a flight (shared mesh build); the original's WRLP-wrap crash and object loss on a full scene not copied"],
+ ["Content library (lib.*), online libraries (SimReady, Poly Haven)", "p", 11, "library / asset / extlib: index, blobs, packs, placing byte for byte both ways; SimReady and Poly Haven catalogs and downloads exact (tested offline); USD import after lib.get (USD row) and SimReady Central's catalog to do"],
+]],
+["AI, agents and scripting", [
+ ["BeeScript language, console, macro recording, headless scripts", "d", 12, "bscript.zig: compiler, VM, units, every limit and message as the original's (280 cases); REPL, one undo step per run, --run / --eval, macro recording; all 211 builtins (bs_*.zig) against the original; fib as fast, loops faster, math builtins 1.04x"],
+ ["MCP server (scene_summary, run_operator, viewport_capture ...)", "d", 12, "mcp.zig / json.zig / mcpmat.zig: socket, --mcp-bridge, curated tools, 606 agent-safe op_* tools, resources, prompts; tools/list and replies byte for byte; fuzzed transport"],
+ ["Agent permissions, change sets, AI Activity", "d", 12, "agent.zig: permission tiers, one undo step per request with a one-click revert, the AI Activity editor 0 px from the original's; co-pilot proposals (Accept / Revert banner)"],
+ ["AI Assistant (Claude Code, Grok, OpenRouter)", "d", 12, "ai.zig / aiproc.zig: Claude Code and Grok CLIs over --mcp-bridge, OpenRouter and Ollama with in-process tools; argv, configs, transcripts and scenes byte for byte on fake CLIs and a local fake server (never the network)"],
+ ["Ask AI about the selection (Alt+right-click)", "d", 12, "aiask.zig: the box, what is sent (selection or edit-mode elements), Only the Selection, history, quick buttons"],
+ ["Image to 3D addon (Hi3D)", "d", 12, "hi3d.zig: from_image / refine / place / stop, the helper's @bee lines, chip, log; tested with a fake helper only"],
+]],
+["Collaboration and versions", [
+ ["Versions: commit, branches, merge, history", "d", 13, "vc.zig: commit / log / branch / switch / diff (overlay, side, ghosts) / merge (three-way, per property and chunk) / resolve / abort, MCP, vcinfo / vctext; repositories cross both ways, mesh blobs byte for byte, the same printed results over 12 random histories; 4-17x faster; switch / merge / resolve are undo steps (the original's lose the scene), its crashes on damaged repositories not copied; scene blobs are the port's .bee layout"],
+ ["Co-editing (host / join / follow)", "d", 13, "cosync.zig / cotree.zig: host, join, follow, session keys, the agent peer, undo per author, node graphs, CRDT; wire byte for byte, original and port peers in one session converge (cohash, scenes, files), 200 random concurrent edits in mixed chains; costat / cohash; Collaboration section; LAN hosting not run (loopback rule)"],
+ ["Live link", "d", 13, "link.zig: serve (TCP loopback, UNIX socket), HELLO, snapshot and all 24 change kinds byte for byte, backpressure, mirror (link.connect / --link), livelink(), chip and Versions row; original and port mirror each other; 0.06 vs 0.096 ms latency, snapshots 2x faster; the original's crash on shrunk materials and damaged-input overreads not copied; \"lan\" not run (loopback rule)"],
+]],
+];
+
+const ST = {d: "done", p: "partial", t: "todo"};
+const LABEL = {d: "Done", p: "Partial", t: "To do"};
+const list = document.getElementById("list");
+const q = document.getElementById("q"), st = document.getElementById("st"), ph = document.getElementById("ph");
+document.getElementById("updated").textContent = "Last update: " + UPDATED + ".";
+const phases = [...new Set(DATA.flatMap(c => c[1].map(f => f[2])))].sort((a, b) => a - b);
+for (const p of phases) { const o = document.createElement("option"); o.value = p; o.textContent = "Phase " + p; ph.appendChild(o); }
+
+function bar(d, p, n) {
+  return `<div class="bar"><i class="d" style="width:${100 * d / n}%"></i><i class="p" style="width:${100 * p / n}%"></i></div>`;
+}
+function counts(items) {
+  const c = {d: 0, p: 0, t: 0}; for (const f of items) c[f[1]]++; return c;
+}
+function esc(s) { return s.replace(/[&<>]/g, ch => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"}[ch])); }
+
+function render() {
+  const all = DATA.flatMap(c => c[1]);
+  const c = counts(all), n = all.length;
+  const score = Math.round(100 * (c.d + 0.5 * c.p) / n);
+  document.getElementById("summary").innerHTML =
+    `<div class="tile"><b>${n}</b><span>features</span></div>` +
+    `<div class="tile"><b>${c.d}</b><span>done</span></div>` +
+    `<div class="tile"><b>${c.p}</b><span>partial</span></div>` +
+    `<div class="tile"><b>${c.t}</b><span>to do</span></div>` +
+    `<div class="tile"><b>${score}%</b><span>ported (partial counts half)</span>${bar(c.d, c.p, n)}</div>`;
+  const text = q.value.toLowerCase(), want = st.value, wp = ph.value;
+  let closed = {};
+  try { closed = JSON.parse(localStorage.getItem("bmz-closed") || "{}"); } catch (e) {}
+  list.innerHTML = "";
+  for (const [cat, items] of DATA) {
+    const shown = items.filter(f => (!text || (cat + " " + f[0] + " " + f[3]).toLowerCase().includes(text)) &&
+      (!want || ST[f[1]] === want) && (!wp || String(f[2]) === wp));
+    if (!shown.length) continue;
+    const k = counts(items);
+    const s = document.createElement("section");
+    if (closed[cat] && !text && !want && !wp) s.className = "closed";
+    s.innerHTML = `<h2><span class="name">${esc(cat)}</span><span class="count">${k.d} / ${items.length} done</span>${bar(k.d, k.p, items.length)}</h2>` +
+      `<table>${shown.map(f => `<tr><td class="st"><span class="chip ${ST[f[1]]}">${LABEL[f[1]]}</span></td><td>${esc(f[0])}</td><td class="note">${esc(f[3])}</td><td class="ph">Ph ${f[2]}</td></tr>`).join("")}</table>`;
+    s.querySelector("h2").onclick = () => {
+      s.classList.toggle("closed"); closed[cat] = s.classList.contains("closed");
+      try { localStorage.setItem("bmz-closed", JSON.stringify(closed)); } catch (e) {}
+    };
+    list.appendChild(s);
+  }
+}
+q.oninput = st.onchange = ph.onchange = render;
+render();
+</script>
+</body>
+</html>

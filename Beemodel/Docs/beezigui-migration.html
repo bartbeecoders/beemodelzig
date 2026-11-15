@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeeZigUi Migration Plan</title>
+<style>
+:root {
+  --bg: #f6f5f2; --panel: #ffffff; --ink: #1d1f23; --muted: #626872; --line: #e1ded8;
+  --done: #2f8f4e; --partial: #c98a12; --todo: #a9adb5; --accent: #e8a317; --risk: #b8452f;
+  --chip-done: #e3f3e8; --chip-partial: #fbf0d9; --chip-todo: #eceef1; --chip-risk: #f8e3de;
+  --code: #f1efea;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17191d; --panel: #1f2227; --ink: #e7e9ec; --muted: #9aa1ab; --line: #30343b;
+    --done: #5cc27e; --partial: #e8b04a; --todo: #5d636c; --accent: #f2b134; --risk: #e57a62;
+    --chip-done: #1f3527; --chip-partial: #3a3020; --chip-todo: #2a2e34; --chip-risk: #3d2420;
+    --code: #2a2e34;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17191d; --panel: #1f2227; --ink: #e7e9ec; --muted: #9aa1ab; --line: #30343b;
+  --done: #5cc27e; --partial: #e8b04a; --todo: #5d636c; --accent: #f2b134; --risk: #e57a62;
+  --chip-done: #1f3527; --chip-partial: #3a3020; --chip-todo: #2a2e34; --chip-risk: #3d2420;
+  --code: #2a2e34;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header, main { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+header { padding-top: 28px; }
+h1 { margin: 0 0 4px; font-size: 24px; }
+h2 { font-size: 17px; margin: 28px 0 10px; }
+h3 { font-size: 14px; margin: 16px 0 6px; }
+p { margin: 6px 0 10px; }
+.sub { color: var(--muted); margin: 0 0 18px; max-width: 820px; }
+code { font: 12.5px/1.4 ui-monospace, "JetBrains Mono", monospace; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+pre { font: 12.5px/1.5 ui-monospace, "JetBrains Mono", monospace; background: var(--code); padding: 10px 12px; border-radius: 8px; overflow-x: auto; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; margin: 0 0 8px; }
+nav.toc a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--line); }
+nav.toc a:hover { color: var(--ink); }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 12px 0; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.tile b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.tile span { color: var(--muted); font-size: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+.card.note { border-left: 4px solid var(--accent); }
+.wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+td { border-top: 1px solid var(--line); padding: 7px 10px; vertical-align: top; }
+td.n { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.done { background: var(--chip-done); color: var(--done); }
+.chip.partial { background: var(--chip-partial); color: var(--partial); }
+.chip.todo { background: var(--chip-todo); color: var(--muted); }
+.chip.risk { background: var(--chip-risk); color: var(--risk); }
+details.ms { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin: 12px 0; overflow: hidden; }
+details.ms > summary { list-style: none; cursor: pointer; padding: 12px 16px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+details.ms > summary::-webkit-details-marker { display: none; }
+details.ms > summary .id { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; min-width: 34px; }
+details.ms > summary .t { font-weight: 600; flex: 1 1 260px; }
+details.ms > summary .meta { color: var(--muted); font-size: 12px; }
+details.ms > div { padding: 0 16px 14px; border-top: 1px solid var(--line); }
+details.ms ul { margin: 6px 0 8px; padding-left: 20px; }
+details.ms li { margin: 3px 0; }
+.lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 12px; }
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
+.flow div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+.flow div b { display: block; color: var(--accent); font-size: 12px; }
+footer { color: var(--muted); font-size: 12px; max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+@media (max-width: 640px) { td.hide-sm, th.hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>BeeZigUi in BeeModel: migration plan</h1>
+  <p class="sub">How every part of BeeModel's user interface moves onto BeeZigUi (Zui, <code>../BeeZigUi</code>), one step at a time, with the app working and all scenarios passing after each step. Written 2026-11-14, after the folders were reordered into <code>BeeModel/Beemodel</code> and <code>BeeModel/BeeZigUi</code>. The <code>Docs/zui-pilot.md</code> pilot (Preferences drawn by Zui behind <code>-Dzui=true</code>) is the starting point.</p>
+  <nav class="toc">
+    <a href="#goal">Goal and scope</a><a href="#today">Where things stand</a><a href="#arch">Target architecture</a>
+    <a href="#decisions">Decisions</a><a href="#milestones">Milestones</a><a href="#map">File map</a>
+    <a href="#contract">Test contract</a><a href="#zuiwork">Work in BeeZigUi</a><a href="#risks">Risks</a><a href="#done">Definition of done</a>
+  </nav>
+  <div class="summary">
+    <div class="tile"><b>~176k</b><span>lines of Zig in BeeModel</span></div>
+    <div class="tile"><b>~45</b><span>files that draw UI (shell, panels, editors)</span></div>
+    <div class="tile"><b>11</b><span>milestones, M0 to M10</span></div>
+    <div class="tile"><b>315</b><span>scenarios that must pass after every step</span></div>
+    <div class="tile"><b>27 / 28</b><span>Zui phases done; BeeModel needs nothing new at the core</span></div>
+  </div>
+</header>
+
+<main>
+
+<h2 id="goal">Goal and scope</h2>
+<div class="card">
+  <p><b>Goal.</b> Every widget, panel, menu, dialog, list, area and editor frame in BeeModel is described with Zui. BeeModel's own UI layer (<code>ui.zig</code> widgets, <code>wg.zig</code>, <code>kbnav.zig</code>, <code>menus.zig</code>, <code>pies.zig</code>, <code>dialogs.zig</code>, the area code in <code>app.zig</code>, and the hand-drawn rows in every panel) is deleted at the end.</p>
+  <p><b>What moves to Zui:</b> widgets and layout, tooltips and disabled reasons, keyboard focus, menus, the F3 palette, pies and the wheel, dialogs and forms, toasts and the status bar, lists, trees and tiles, text views and the console, the colour picker, the file browser, areas, docking, workspaces and floating panels, the chrome of the 2D editors (rulers, playhead, handles, box select, pan and zoom), and the node editor.</p>
+  <p><b>What stays BeeModel's</b>, as Zui's own plan already says: the 3D rasterizer and path tracer and what they draw (grid, meshes, gizmo, overlays, sculpt and paint cursors); the content of the 2D editors (keys, curves, UVs, the render result, node graphs), which BeeModel now paints through a Zui canvas; the operator catalog and its 692 commands; keymaps; theme data; modal G / R / S; the scene. For now, also the Wayland window (see <a href="#decisions">D4</a>).</p>
+</div>
+
+<h2 id="today">Where things stand</h2>
+<div class="wrap"><table>
+  <tr><th>Part</th><th>State</th><th>Notes</th></tr>
+  <tr><td>Zui library</td><td><span class="chip done">ready</span></td><td>Phases 13 to 27 were planned from BeeModel's needs and are done: drawing primitives and images, the widget record and scripts, property fields, menus and command search, docking, dialogs and feedback, lists and drag and drop, text views and the console, colour picker and themes, pies and the wheel, 2D views, the node editor, the file browser, native Wayland. Open: running on Windows and macOS.</td></tr>
+  <tr><td>Pilot (Phase 27)</td><td><span class="chip partial">partial</span></td><td><code>src/zuiprefs.zig</code> (744 lines) draws the Preferences dialog with Zui into <code>ui.cv.px</code>, behind <code>-Dzui=true</code>. All 315 scenarios and the fuzzers pass; frame cost 1.94 vs 1.88 ms. Not done: the Preferences in an area, a live check in a window.</td></tr>
+  <tr><td>Build wiring</td><td><span class="chip risk">broken path</span></td><td><code>build.zig</code> defaults <code>-Dzui-path</code> to <code>../../Zig/beezigui</code>. After the reorder Zui is at <code>../BeeZigUi</code>. M0 fixes this.</td></tr>
+  <tr><td>BeeModel UI code</td><td><span class="chip todo">to move</span></td><td>Shell <code>app.zig</code> (2,745 lines), 13 shell files (~5,600 lines), ~30 panel and editor files with UI (~20,000 lines, including <code>nodeed.zig</code> 3,596 and <code>editors.zig</code> 2,549), plus small UI touches in ~20 other files. 169 <code>ui.record</code> call sites in 50 files.</td></tr>
+</table></div>
+
+<h2 id="arch">Target architecture</h2>
+<div class="card">
+  <p>One <code>zui.Ui</code> for the main window, owned by a new <code>src/zuihost.zig</code> (grown out of <code>zuiprefs.zig</code>). BeeModel keeps its window, event loop and framebuffer; Zui draws into that framebuffer with its software renderer, in place, exactly as the pilot does today.</p>
+  <div class="flow">
+    <div><b>1 · Wayland event</b><code>wayland.zig</code> + <code>keyboard.zig</code> (XKB, dead keys, layout-aware shortcuts)</div>
+    <div><b>2 · Modal first</b>play mode, G / R / S, UV and mesh-op modals keep the input while they run</div>
+    <div><b>3 · Into Zui</b><code>zuihost.input</code>: pointer, buttons, wheel, keys, text, file drops onto <code>ui.input</code></div>
+    <div><b>4 · Frame</b><code>ui.beginFrame</code> → the shell (dock, bars, menus) → each area's editor → <code>ui.endFrame</code></div>
+    <div><b>5 · Content</b>viewport and 2D content painted into canvases / images before or inside the Zui pass</div>
+    <div><b>6 · Present</b>software renderer into the shm buffer; <code>ui.cursor</code>, <code>redraw_in</code> to the Wayland loop</div>
+  </div>
+  <ul>
+    <li><b>One pass instead of two.</b> BeeModel runs <code>app.frame</code> as a hit pass on each event and as a draw pass per frame. Zui queues input and runs one frame. While mixed (M1 to M7), BeeModel's hit pass skips any rect Zui owns: an event goes to Zui first, and BeeModel's own code sees it only when Zui did not take it (<code>ui.wantsKeyboard()</code>, the pointer not over a Zui widget, window or popup). From M7, when the shell is Zui's, the hit pass is gone.</li>
+    <li><b>Mixed frames are safe.</b> A Zui region (<code>ui.beginRegion(id, rect, …)</code>) can sit inside an area that BeeModel's shell still lays out, so panels move before the shell does. The pilot proved Zui and BeeModel can share one canvas and one frame.</li>
+    <li><b>A BeeModel panel kit</b> (<code>src/bkit.zig</code>) on top of Zui holds what every panel repeats: <code>section</code> (collapsing header with BeeModel's look), <code>opButton</code> (a catalog operator: label, icon, shortcut, tooltip from the catalog's docs, greyed with the catalog's "Not now: why"), property rows (label + number field with <code>expr.zig</code> as the evaluator, units), and the Properties tab strip. It replaces <code>editors.section</code>, <code>opButtonL</code> and the many local row helpers.</li>
+    <li><b>Look from BeeModel's data.</b> Zui style from the active theme (<code>styleFrom</code>, from the pilot) for all nine themes, the accent and the colour-blind option; Noto Sans and Noto Sans Bold, mono for the console; BeeModel's 114 icons registered as a Zui icon set; 22-unit rows.</li>
+    <li><b>Per-area state stays BeeModel's,</b> keyed by Zui's <code>AreaId</code>: a viewport's camera <code>View</code> (read by BeeScript and MCP), a timeline's range, an outliner's filter.</li>
+    <li><b>Floating panels in their own OS windows</b> (<code>panelwin.zig</code>): Zui windows with <code>.detached = true</code>; <code>panelwin.zig</code> opens an xdg_toplevel per entry of <code>ui.viewports()</code> and feeds back size and input.</li>
+  </ul>
+</div>
+
+<h2 id="decisions">Decisions</h2>
+<p class="sub">Recommendations; change any of them before the milestone that depends on it starts.</p>
+<div class="wrap"><table>
+  <tr><th>#</th><th>Decision</th><th>Recommendation and why</th></tr>
+  <tr><td>D1</td><td>Zui as a dependency</td><td>A path dependency in a new <code>build.zig.zon</code> (<code>.zui = .{ .path = "../BeeZigUi" }</code>) using Zui's own modules (<code>zui</code>, <code>zui_software</code>, <code>zui_nodes</code>, <code>zui_files</code>), instead of <code>build.zig</code> building Zui's source files by path. One place to change, and Zui's add-ons come for free.</td></tr>
+  <tr><td>D2</td><td>The <code>-Dzui</code> flag</td><td>Retire it in M0: Zui becomes required. Keeping both UIs for every panel would double the work over ~30,000 lines. Each step instead replaces a panel's old code in the same change, once its scenarios pass on the new one. The plain build stays reproducible from the last version before M0.</td></tr>
+  <tr><td>D3</td><td>Order of work</td><td>Inside out: host and look, then panels made only of widgets (most code, least risk), then lists, menus, text, feedback, and only then the shell (docking), the 2D editors and the viewport. Each milestone delivers a working app.</td></tr>
+  <tr><td>D4</td><td>The window</td><td>Keep BeeModel's <code>wayland.zig</code> through M9; it already works, and the pilot shows Zui fits inside an app that owns its window. In M10, decide whether to switch to <code>zui_wayland</code> (removes ~1,000 lines of BeeModel; needs the GPU helper's present path and BeeModel's tablet and wlext extensions checked first).</td></tr>
+  <tr><td>D5</td><td>Icons and themes</td><td>BeeModel's 114 icons and nine themes stay in BeeModel (its own source: src/icons.zig, src/themes.zig) and are handed to Zui as an icon set and a style. Zui keeps only the mechanisms. This answers the open question in Zui's PLAN.html.</td></tr>
+  <tr><td>D6</td><td>Widget names for tests</td><td>Keep BeeModel's record kinds and labels as they are (<a href="#contract">test contract</a>). Until M10 a bridge copies Zui's record into <code>ui.rec</code>; in M10 the driver, the fuzzers and MCP read Zui's record directly.</td></tr>
+  <tr><td>D7</td><td>Renderer</td><td>Software renderer only, drawing into BeeModel's buffer. The OpenGL renderer is not used: BeeModel has no GL context (its GPU helper is Vulkan, out of process).</td></tr>
+  <tr><td>D8</td><td>Gaps found on the way</td><td>Fixed in BeeZigUi, with a test there, never worked around in BeeModel. Each fix is listed in Zui's PLAN.html as part of Phase 27.</td></tr>
+</table></div>
+
+<h2 id="milestones">Milestones</h2>
+<p class="sub">Each milestone ends with the same gate: <code>tests/verify.sh</code> passes (all 315 scenarios, unit tests, the .bee round trip), <code>fuzz.py 200</code>, <code>fuzz_areas.py 100</code> and <code>fuzz_prefs.py 300</code> on the debug build show no failures, frame times stay inside the budget (busiest panels ≤ 3 ms, idle frame ≤ 0.7 ms at 1280×800 release), side-by-side screenshots of the moved parts are compared with the previous build, and someone tries it live in a window. The old code of whatever moved is deleted in the same milestone.</p>
+
+<details class="ms" open>
+  <summary><span class="id">M0</span><span class="t">Foundation: Zui required, one host for the whole app</span><span class="meta">build.zig, zuiprefs → zuihost</span><span class="chip done">done 2026-11-14</span></summary>
+  <div>
+    <ul>
+      <li><code>build.zig.zon</code> with Zui as a path dependency (<code>../BeeZigUi</code>); <code>build.zig</code> imports <code>zui</code>, <code>zui_software</code>, <code>zui_nodes</code>, <code>zui_files</code>; <code>-Dzui</code> and <code>-Dzui-path</code> removed, all <code>build_options.zui</code> branches resolved.</li>
+      <li><code>src/zuihost.zig</code> from <code>zuiprefs.zig</code>: one <code>zui.Ui</code> and software renderer for the app; fonts; <code>styleFrom</code> for every theme, accent and colour-blind mode, reapplied when the theme changes; UI scale and compositor scale; BeeModel's icons as a Zui icon set; the clipboard (<code>clipboard.zig</code> as a <code>zui.Clipboard</code>); cursor shapes; <code>redraw_in</code> into the event loop's timeout.</li>
+      <li>Input routing as in <a href="#arch">the architecture</a>: modal first, then Zui, then BeeModel's hit pass for what Zui did not take.</li>
+      <li>Record bridge: Zui's widgets copied into <code>ui.rec</code> with BeeModel's kinds (generalised from the pilot), so the driver, Python tests, fuzzers and MCP <code>ui_tree</code> see one list.</li>
+      <li>Headless driver (<code>main.zig --shot</code>): one press-and-release in a frame works (fixed in Zui during the pilot); timed frames advance Zui's clock under <code>--wait</code>.</li>
+      <li><code>src/bkit.zig</code>, the panel kit: <code>section</code>, <code>opButton</code> from the catalog, property rows with <code>expr.zig</code> and units, icon tabs, the "Not now: why" tooltip.</li>
+    </ul>
+    <div class="lbl">Done when</div>
+    <p>The Preferences dialog runs from <code>zuihost</code> with no flag; the gate passes; a frame with no Zui UI open costs what it did before (0.65 ms).</p>
+    <div class="lbl">Result</div>
+    <ul>
+      <li><code>build.zig.zon</code> (Zui at <code>../BeeZigUi</code>); <code>build.zig</code> imports <code>zui</code>, <code>zui_software</code>, <code>zui_nodes</code>, <code>zui_files</code>; <code>-Dzui</code>, <code>-Dzui-path</code> and every <code>build_options</code> branch gone.</li>
+      <li><code>src/zuihost.zig</code>: one Ui, fonts, theme style, BeeModel's 114 icons as an alpha atlas (<code>zuihost.icon</code>), the system clipboard, clients with claims (pointer, wheel and keys go to Zui only over what it covers; a modal client takes all), timed frames, the record bridge with a kind table, cursors. Its frame runs at the dialog layer of <code>app.frame</code>.</li>
+      <li><code>src/zuiprefs.zig</code> is now only the dialog, a modal client; <code>src/bkit.zig</code> has <code>section</code>, <code>opButton</code>, <code>numberRow</code> (typed values through <code>cad.eval</code>), <code>checkRow</code>; the Preferences' check boxes use it.</li>
+      <li><code>zig build test-ui</code> (<code>src/zuitest.zig</code>): kind mapping, icon atlas, expressions, the kit's records, a click on a kit check box; added to <code>tests/verify.sh</code>.</li>
+      <li>Gate: 315 / 315 scenarios pass; the 279 that are deterministic are pixel- and dump-identical to the pilot build; 146 unit-test files and test-ui pass; <code>fuzz.py 200</code>, <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code>, <code>fuzz_edit.py 100</code>, <code>wl.py</code>, <code>uishell.py</code>: 0 failures. Release, 1280×800: closed 0.61 ms, Preferences 1.87 ms, Keymap 2.05 ms, the same as the pilot.</li>
+      <li>Not done here: a live check in a real window.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M1</span><span class="t">Dialogs: finish the pilot</span><span class="meta">dialogs.zig 507 · prefpages.zig 426 · forms.zig 525 · redo.zig 291</span><span class="chip done">done 2026-11-14</span></summary>
+  <div>
+    <ul>
+      <li>Preferences: all pages, and the Preferences as an area (<code>dialogs.areaBody</code>) through a Zui region at the area's rect.</li>
+      <li>About, Shortcuts (F1, a text view with key chips), Undo History (a list), "Save changes?" (a modal dialog: Enter, Esc, backdrop).</li>
+      <li>Operator forms (<code>forms.zig</code>): one generic form per catalog operator's arguments, OK and Cancel, one undo step per commit (Zui's edit lifecycle).</li>
+      <li>Redo panel (<code>redo.zig</code>): the last operator's arguments, live.</li>
+    </ul>
+    <div class="lbl">Done when</div>
+    <p><code>zuiprefs.zig</code> is gone into <code>zuihost</code> + <code>dialogs.zig</code>; <code>ui.L_DIALOG</code> is unused; dialogs look the same in all nine themes.</p>
+    <div class="lbl">Result</div>
+    <ul>
+      <li><b>Host:</b> two kinds of Zui UI in one frame. <i>Dialogs</i> (clients) are described at the dialog layer; <i>parts</i> (<code>beginPart</code> / <code>endPart</code>) sit inside BeeModel's own layout and are drawn on the spot through <code>Ui.rootView</code>, so BeeModel's menus and pies still go over them. A part only gets the pointer where no higher BeeModel layer is (<code>app.layerAt</code>: a menu, a pie, the palette, a floating panel) and no BeeModel drag is going on. After a frame in which Zui acted on input, one more frame is drawn, so what a Zui button did shows everywhere at once.</li>
+      <li><b>Moved:</b> About, Keyboard Shortcuts (rows recorded as <code>shortcut</code>), Undo History, the operator forms, "Save changes?", saving over a lossy file, Recover unsaved work (Zui's <code>beginDialog</code>: backdrop, Enter / Esc, Tab kept inside); the Preferences in an area of the layout (a part); the redo panel (a part); the Preferences' AI page, which the pilot had left out. <code>prefpages.zig</code> keeps only its values (426 → 80 lines); <code>app.zig</code> lost its two prompts; <code>autosave.zig</code> its own.</li>
+      <li><b>BeeZigUi:</b> <code>DrawList.view</code>, <code>Ui.rootCommandCount</code> / <code>rootView</code>; <code>select_on_click</code> for text fields; three dialog fixes (default button not focused when a dialog opens in a Ui's first frames; Enter ignored with nothing focused; the Enter that ends typing in a field also pressed the default button), each with a test.</li>
+      <li><b>Driver:</b> <code>--expect-field</code> reads Zui's fields too; the driver draws again while Zui's layout settles.</li>
+      <li><b>Gate:</b> 325 / 325 scenarios (10 new for M1); every unit-test file and <code>test-ui</code> pass; BeeZigUi's tests and scenarios pass; <code>fuzz.py 200</code>, <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code>, <code>fuzz_edit.py 100</code>, <code>wl.py</code>, <code>uishell.py</code>, <code>jobs_wl.py</code>: 0 failures. Release, 1280×800 (pilot build → now): idle 0.62 → 0.65 ms, Preferences 1.89 → 1.96, Keymap 2.08 → 2.12, Undo History 1.18 → 1.65, Shortcuts 1.74 → 2.04, redo panel 0.65 → 0.69, Preferences in an area 0.62 → 0.71. All inside the budget.</li>
+      <li><b>Open:</b> the idle frame is 0.03 ms slower although Zui does no work in it and draws nothing different (checked); cause not found yet, to look at in the M2 gate. <code>ui.L_DIALOG</code> is still used by what later milestones move (welcome screen, Ask AI, the palette, the file browser). The tests that compared with the assembly original could not run; since BeeModel stopped being a port (2026-11-14) they run on BeeModel alone. Converting them found that the redo panel's drag had become ten times slower in M1 (Zui's default drag step), fixed: BeeModel's fields move a step per pixel (redo panel, forms, panel kit). No live check in a window yet.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M2</span><span class="t">Property panels (widgets only)</span><span class="meta">~5,600 lines in 14 files, plus the Properties and Tools in editors.zig</span><span class="chip done">done</span></summary>
+  <div>
+    <p>The largest milestone by line count and the lowest in risk: these panels are rows of fields, toggles, drop-downs and operator buttons. Move them in this order, smallest first, so the panel kit settles early:</p>
+    <ul>
+      <li><code>bakeui</code> 89, <code>rigui</code> 151, <code>animui</code> 225, <code>textui</code> 232, <code>fieldui</code> 238, <code>shatterui</code> 248</li>
+      <li><code>cadui</code> 365, <code>sculptui</code> 375 (brush bar; the cursor stays in the viewport), <code>curveui</code> 429 (panel only), <code>partui</code> 445, <code>paintui</code> 518 (brush bar; the cursor stays)</li>
+      <li><code>graphcmds</code> 601, <code>landui</code> 736, <code>physui</code> 969</li>
+      <li>The Properties editor itself in <code>editors.zig</code>: icon tabs (vertical tab bar), Object (location / rotation / scale vector rows with axis colours, lights, cameras), Material, Scene, Viewport; the modifier stack (reorderable list with per-item toggles).</li>
+      <li>The Tools editor in <code>editors.zig</code>.</li>
+    </ul>
+    <p>Field context menus (Reset to Default, Copy / Paste Value, Insert Keyframe, Add Driver) become one handler on <code>ui.contextRequest()</code>; the hovered-field keys (<code>wg.hoveredField</code>: I for keyframe, Ctrl+C on a field) use <code>ui.hoveredWidget()</code>.</p>
+    <div class="lbl">Done when</div>
+    <p>No panel in this list calls <code>ui.press</code>, <code>ui.hover</code>, <code>ui.button</code>, <code>ui.numField</code>, <code>ui.valueField</code> or <code>ui.cv</code>; scrubbing, Shift / Ctrl modifiers, typed expressions (<code>2*pi</code>, <code>25mm + 1cm</code>) and undo behave as before.</p>
+    <div class="lbl">Result (2026-11-14)</div>
+    <ul>
+      <li><b>Flow parts:</b> a panel inside a page BeeModel lays out and scrolls itself is a <code>bkit.Flow</code> (<code>zuihost.beginFlowPart</code>): Zui lays it out from the page's y, it says how tall it was, BeeModel lays out what follows. In the hit pass it describes nothing and gives the last frame's height. The wheel over it stays the page's. Rows are 22 high and 26 apart, fields' natural width 60, as BeeModel's columns.</li>
+      <li><b>Moved:</b> all 14 panel files (bake, rig, anim, text, field, shatter, curve, CAD, particles, landscape, physics; the sculpt and paint brush bars and the paint layers; graphcmds' instance rows and texture row), the Properties editor (icon tabs as a part; Object, Modifiers, Material, Render, Scene, Viewport, light and camera rows) and the Tools editor. Records keep their kinds and labels (<code>enum:</code> for drop-downs, <code>colour:</code>, <code>info:</code>, <code>row:</code>, value-labelled vector fields), and positions stay within a pixel or two, so the tests run unchanged. The Material tab now scrolls (it ran past the bottom of the area). What stays BeeModel's: the brush and curve overlays in the viewport, sketchui's rows, refimg's and print's rows, nodeed's details (later milestones), and the colour picker (M6), which <code>bkit.colourRow</code> opens.</li>
+      <li><b>Panel kit:</b> <code>Flow</code>, <code>section</code>, <code>heading</code>, <code>opButton</code> (operator arguments, tooltip), <code>button</code>, <code>toggle</code>, <code>numberRow</code> (any number type, BeeModel's expressions), <code>vec3Row</code>, <code>checkRow</code>, <code>choice</code> (any number of items), <code>textRow</code>, <code>colourRow</code>, <code>row</code>, <code>info</code> / <code>note</code> / <code>infoPair</code>, <code>beginPair</code>, <code>beginCaptioned</code>, <code>columnWidth</code>.</li>
+      <li><b>BeeModel's field list (wg) knows Zui's widgets:</b> number, text and colour fields and buttons join it, so the field menu (Reset to Default, Copy / Paste Value, Insert Keyframe, Copy Data Path), Ctrl+C / Ctrl+V and I over a hovered field, and the Tab focus ring work on them. A value from there waits for its field's next draw; in BeeModel's hit pass each part puts its entries of the last draw back in their place. (Instead of <code>ui.contextRequest()</code> and <code>ui.hoveredWidget()</code> as planned: the menu, the keys and the ring stay BeeModel's until M4.)</li>
+      <li><b>Host fixes:</b> what a Zui widget changes is an undo step of its own (the events Zui took skipped <code>app.afterInput</code>); a modal dialog that closes in its own frame lets go of the keys and its focus at once (with the Properties always on screen, the key after OK went to Zui); Zui's cursor only where the pointer is Zui's (the brush crosshair beside a bar); the driver lets Zui's layout settle before its first step.</li>
+      <li><b>BeeZigUi:</b> <code>wantsKeyboard()</code> is true while a number field is typed into (the digits went to BeeModel); <code>TextInputOptions.copy_all</code> (Ctrl+C / Ctrl+X with nothing selected take the whole text, as BeeModel's fields); a regression test for each.</li>
+      <li><b>Gate:</b> 325 / 325 scenarios; <code>rig.py</code>, <code>physui_wl.py</code>, <code>particles_wl.py</code>, <code>landui_wl.py</code>, <code>text3d_wl.py</code>, <code>curves_wl.py</code>, <code>paint.py</code> (UI parts), <code>sculpt.py</code>, <code>feature.py</code>, <code>mech.py</code>, <code>review12.py</code>, <code>fuzz.py</code>: 0 failures on the M2 build. BeeZigUi's tests and scenarios pass.</li>
+      <li><b>Open:</b> textRow edits a 256-byte copy (the old field held 512); Zui widgets also appear in the record as <code>button:</code> next to their BeeModel kind; a few helpers the panels wrote for themselves could join the kit (a caption on a drop-down's own line, wrapped hints, icon operator buttons with a checked state). No live check in a window yet.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M3</span><span class="t">Lists, trees and tiles</span><span class="meta">Outliner · outfolders 426 · libui 651 · versions 377 · keymap list</span><span class="chip done">done 2026-11-14</span></summary>
+  <div>
+    <ul>
+      <li>Outliner (<code>editors.zig</code> + <code>outfolders.zig</code>): virtual tree list, fold, eye / lock / render toggles, filter, rename (F2, double-click), multi-selection, reparent by dragging with drop hints and refusals, folders.</li>
+      <li>Asset Browser (<code>libui.zig</code>): tiles with BeeModel's thumbnails as Zui images, drag from a tile into the viewport (drop zone over the viewport's area).</li>
+      <li>Versions editor (<code>versions.zig</code>): commit list; the history graph painted on a canvas.</li>
+      <li>Keymap list in the Preferences, the undo history, the AI activity list (<code>agent.zig</code> 306).</li>
+      <li>Files dropped from the system (<code>drop.zig</code>) go through <code>ui.input.onFileDrop</code> to the zone under the pointer.</li>
+    </ul>
+    <div class="lbl">Done when</div>
+    <p>Selection lives in app-owned bool slices synced with <code>scene.zig</code>; scrolling a 10,000-object outliner stays inside the frame budget.</p>
+    <div class="lbl">Result (2026-11-14)</div>
+    <ul>
+      <li><b>Moved to <code>zui.List</code> / <code>beginTiles</code>:</b> the Outliner (tree rows, fold, lock / render / eye, filter, rename by F2 and double-click, multi-selection synced with <code>scene.zig</code>, reparent by dragging with hints and refusals, folders through <code>outfolders.describeRow</code>); the Asset Browser's tiles (thumbnails as Zui images, drag into the viewport); the Versions editor's lists and its history graph on a canvas; the AI Activity list; and the three lists that were still drawn row by row: the Keyboard Shortcuts (F1), the Undo History and the Preferences' keymap. The keymap list now has a scrollbar, keyboard navigation and a picked row that stays on its operator while the search narrows; Enter or a double click on a row is Set. The Undo History opens with the current step in view, and a click or Up / Down on the focused list goes to a step. Records keep their kinds (<code>shortcut:</code>, <code>step:</code>, <code>keyrow:</code>, <code>key:</code>).</li>
+      <li><b>Lesson:</b> what a row draws for itself goes after <code>endRow</code> (or uses its own clip): between <code>beginRow</code> and <code>endRow</code> drawing is clipped to the label's region, which starts after the fold gutter, so text there loses its first ~20 px.</li>
+      <li><b>Frame budget:</b> the scene holds at most 8,192 objects (<code>scene.max_objects</code>, u16 ids), so the test used 8,003. The Outliner's whole part costs 0.11 ms a frame with them (release, 1280×800).</li>
+      <li><b>Found on the way, not M3's:</b> with 8,003 objects a frame takes 20 ms, and 18.8 ms of it is the 3D viewport even with every object hidden (M9, or a fix of its own; <i>M9: a wrong measurement, the hide had not run</i>); and adding 8,000 cubes from BeeScript (<code>add("cube")</code> in a loop) takes 95 s, so adding gets slower with every object.</li>
+      <li><b>Moved on:</b> files dropped from the system still open by their kind wherever they land (<code>drop.zig</code>); routing them through Zui's <code>fileDrop</code> to the zone under the pointer waits for a zone that wants them (the viewport, M9). The Asset Browser's and AI Activity's area-header tools stay BeeModel's with the other headers (M7).</li>
+      <li><b>Gate:</b> 325 / 325 scenarios; <code>test-ui</code>; <code>fuzz.py 200</code>, <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code>, <code>fuzz_edit.py 100</code>, <code>uishell.py</code>, <code>redopanel.py</code>: 0 failures. Not run this round: the full <code>tests/verify.sh</code>, and a live check in a window.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M4</span><span class="t">Menus, palette, pies and keyboard focus</span><span class="meta">menus.zig 993 · pies.zig 703 · kbnav.zig 42 · wg.zig 433</span><span class="chip done">done 2026-11-14</span></summary>
+  <div>
+    <ul>
+      <li>Menu bar and drop-downs generated from <code>catalog.zig</code> (icons, shortcuts from the active keymap, check marks, submenus, greyed items with reasons); F10 and Alt+letter.</li>
+      <li>Context menus on rows, headers, fields and files (<code>beginContextMenu</code>, <code>beginPopupMenu</code>).</li>
+      <li>F3 palette over the 692 operators with Zui's fuzzy ranking; the F1 shortcut list.</li>
+      <li>Pies (Z, Ctrl+Tab, Shift+S) and the right-click wheel with Zui's <code>pie</code> and <code>wheel</code>; release-to-pick and the key-up close keep working.</li>
+      <li>Keyboard focus: Zui's Tab order, focus ring and focus scopes replace <code>kbnav.zig</code> and the focus parts of <code>wg.zig</code>.</li>
+    </ul>
+    <div class="lbl">Done when</div>
+    <p><code>menus.zig</code> shrinks to building menu content from the catalog; <code>kbnav.zig</code> is deleted; <code>ui.L_POPUP</code> is unused.</p>
+    <div class="lbl">Result (2026-11-14)</div>
+    <ul>
+      <li><b>Moved to Zui</b> (clients of <code>zuihost</code>, in the main window): the bar's drop-downs and their submenus, every context menu (<code>menus.openAt</code>), the lists made at run time (<code>menus.openList</code>: the AI permission, the asset kind ...), the F3 palette, the pies and the right-click wheel. Entries come from the catalog as before (shortcuts from the keymap, ticks, greyed with the reason in the tooltip; a greyed one picked closes the menu and says why). <code>pies.zig</code> 703 → 420 lines: Zui draws and hit-tests; BeeModel keeps when a pie arms (a tap still runs the key's own action and shows nothing), the entries and what they run.</li>
+      <li><b>What stays BeeModel's, outside the menu:</b> the bar's titles (the shell, M7), a press on a title or elsewhere (closes the menu; on a widget, that widget takes it too, now also Zui's), sliding over the titles. Over the menu, the events are Zui's.</li>
+      <li><b>Changed on purpose:</b> the keys go to the innermost open menu and Esc closes one level (before: with a submenu open, Down moved in the outer menu and Esc closed both). The wheel has Zui's look: segments in the entries' colours, names under the icons.</li>
+      <li><b>BeeZigUi:</b> <code>holdMenu</code> (a menu opened by a press the app took: the release over an item picks once the pointer moved 4 units; a right or middle press inside a menu holds it too), <code>externalBar</code> / <code>takeBarRequest</code> (Left / Right walk a bar the app draws), <code>beginPopupMenuSized</code>, <code>highlightFirst</code>; the palette's <code>score</code> (the app's ranking) and <code>Command.detail</code>; <code>openPieAt</code> (a pie already held: its release picks, no tap), <code>openWheelAt</code>, <code>WheelOptions.labels</code>, <code>PieItem.checked</code>; <code>windowShownAt</code> (for a host routing an event before the frame that would know); <code>shown_tip</code>. Fixed: Enter on a submenu's row also picked the submenu's first item (the keys went to two levels in one frame); a tooltip beside a popup's item covered the popup's edge. Each with a test.</li>
+      <li><b>Host fixes found on the way:</b> the window's loop cleared <code>app.dirty</code> after drawing, so a frame Zui asked for (its widgets acted, a dialog sizing itself) waited for the next input; <code>zuihost.tick</code> asks again. The pointer over a Zui window or popup is found where they were shown, not where the pointer was at the last frame (a click right after a move went to what was under the menu). A release Zui takes lets go of BeeModel's button too. Zui's tooltips tell the Help area (they never did since M2).</li>
+      <li><b>Tests:</b> <code>menus_wl.py</code> takes a menu's box from Zui's popup record (<code>popup:</code>) and checks the keys as above; its outliner check asks the widget tree, not a pixel. Before this milestone it failed 2 checks (the Properties' Visible behind a menu, a stale pixel); now 0.</li>
+      <li><b>Moved on:</b> menus, pies and the wheel in a panel's own window are still BeeModel's (the old drawing stays in <code>menus.zig</code> for them; the wheel there opens as its list) until those windows are Zui's (M7), which is also when <code>ui.L_POPUP</code> goes. Keyboard focus moves to M10: the ring walks BeeModel's field list (<code>wg</code>), which holds Zui's widgets too since M2; Zui's own Tab order would leave out the areas BeeModel still draws (the viewport's header, the timeline, the node, UV and render editors) until M5–M9.</li>
+      <li><b>Gate:</b> 325 / 325 scenarios; <code>menus_wl.py</code>, <code>nodeed.py</code>, <code>uishell.py</code>, <code>physui_wl.py</code>, <code>curves_wl.py</code>, <code>library.py</code>, <code>ai.py</code>, <code>rig.py</code>, <code>sculpt.py</code>, <code>fuzz.py 200</code>, <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code>, <code>fuzz_edit.py 100</code>: 0 failures; <code>wl.py</code>: the same 2 as before M4 (a panel window's title); <code>paint.py</code>: the same 2 as before M4 (a script reading vertex colours, texels after a UV paint is undone), not the UI's. BeeZigUi: 218 tests. Release, 1280×800 idle 0.79 ms (as before); at 2560×1440 with View &gt; Theme open 5.68 → 4.74 ms; the wheel open 3.26 → 2.78; the palette 1.47 → 1.16.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M5</span><span class="t">Text: console, AI and help</span><span class="meta">Console · ai.zig 1,687 · aiask 621 · mltext 425 · copilot 420 · helped 83</span><span class="chip done">done 2026-11-14</span></summary>
+  <div>
+    <ul>
+      <li>Console (<code>editors.zig</code>): Zui text view over a log buffer (mono font, select, copy, follow), console line with history and Tab completion over BeeScript builtins and operator ids.</li>
+      <li>AI Assistant (<code>ai.zig</code>): transcript as rich text, the prompt as a multi-line text area (Enter sends, Shift+Enter breaks) replacing <code>mltext.zig</code>; Ask AI (<code>aiask.zig</code>), the procedural co-pilot (<code>copilot.zig</code>).</li>
+      <li>Help editor (<code>helped.zig</code>): tooltip content as wrapped text.</li>
+    </ul>
+    <div class="lbl">Watch</div>
+    <p>Zui's text areas have no undo yet (Zui known limit): add it in BeeZigUi before <code>mltext.zig</code> is removed, since the AI prompt has it today.</p>
+    <div class="lbl">Result (2026-11-14)</div>
+    <ul>
+      <li><b>Moved to Zui</b> (parts in BeeModel's areas, the Ask box a popup of the dialog client): the console (a text view over the log in the mono face: drag to select, double-click, Ctrl+C, follows the end; the command line is <code>consoleInput</code>, with Up / Down history and Tab cycling through the operator ids as before); the AI Assistant (the connection as a drop-down, New / Copy / Revert, the transcript as a text view, the prompt as a text area that grows to 10 lines, Send / Stop); Ask AI (title, prompt, Send / Stop, the four quick asks, Only the selection, history on Up / Down at the prompt's first and last line); the co-pilot's banner over the viewport and its Accept / Revert in the AI Activity header; the Help area (wrapped text, the shortcut as a key chip). <code>mltext.zig</code> is deleted; <code>ai.zig</code> 1,687 → 1,568 lines, <code>helped.zig</code> 83 → 66.</li>
+      <li><b>Changed on purpose:</b> the transcript is wrapped by BeeModel into the view's lines (soft lines, so Copy gives each message on one line as before), with Zui's selection instead of BeeModel's own. The co-pilot's banner is drawn over the navigation gizmo rather than under it. The prompts gained undo (Ctrl+Z a word of typing at a time, Ctrl+Shift+Z / Ctrl+Y); <code>mltext.zig</code> never had it, contrary to the Watch note.</li>
+      <li><b>BeeZigUi:</b> text area undo and redo; <code>textAreaHeight</code> (a text area that grows with its text); <code>caret_line</code> / <code>line_count</code> in the text area's state; <code>TextLine.soft</code> (copied without a line break). Fixed (B14–B17 in its improvement list, each with a test): typing into the middle of a text area garbled the text after the caret; a focused text area did not want the keyboard, so a host never sent it keys; text typed between two frames was cut at 64 bytes (now 1024, and 256 key events). B17: after Enter, a console line let go of the keys until its next frame.</li>
+      <li><b>Host:</b> a mono face for Zui (the console's); a text area's record is named by its name, not its text. Keys after one whose effect needs Zui's frame (a field submitted by Enter, Tab, Esc, Up / Down, a focus BeeModel asked for: Enter opening the console, Ctrl+Shift+Space the AI prompt, Ask AI) wait for that frame and are replayed after it (<code>zuihost.hold</code> / <code>replayHeld</code>), so a burst of input (a slow frame, a job ending with keys queued) is typed as if one key at a time; none replay while a job runs or waits. Without it <code>jobs_wl.py</code>'s "a command typed during a job" became shortcuts.</li>
+      <li><b>Tests:</b> <code>ai.py</code>'s prompt-height check compares heights (it grows, and is one line again once sent) instead of BeeModel's pixel sizes; its connection list is Zui's drop-down. <code>ai_mutants.py</code>'s Shift+Enter mutant (in <code>mltext.zig</code>) is now "Enter does not send" in <code>ai.zig</code>.</li>
+      <li><b>Host, found on the way:</b> a motion Zui takes left BeeModel's hovered and active area where they were (no hit pass runs for it): a command right after moving onto a Zui part (the console, and since M2 / M3 Properties, Tools, the Outliner) acted on the area hovered before. The area under the pointer is now made active then too (<code>library.py</code>'s tile dragged from the browser where the console was).</li>
+      <li><b>Left open:</b> BeeZigUi P11 (text areas wrap again every frame): the prompts are short; measured below.</li>
+      <li><b>Gate:</b> 325 / 325 scenarios; <code>ai.py</code>, <code>copilot.py</code>, <code>jobs_wl.py</code>, <code>menus_wl.py</code>, <code>library.py</code>, <code>nodeed.py</code>, <code>uishell.py</code>, <code>physui_wl.py</code>, <code>curves_wl.py</code>, <code>landscape_wl.py</code>, <code>bs_window.py</code>, <code>files6.py</code>, <code>rig.py</code>, <code>sculpt.py</code>, <code>fuzz.py 200</code>, <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code>, <code>fuzz_edit.py 100</code>: 0 failures. <code>wl.py</code>: the same 2 as before M4 (a panel window's title). <code>coedit.py</code>: a Follow button's place fails on the M4 build too; "the same saved .bee files" (seed 152) is a timing race of co-editing, 1 run in 3 on the M4 build, most runs on this one, and passed when run again: not the UI's, left for a co-editing look. <code>sketch.py</code>'s save / open check fails on the M4 build too. BeeZigUi: 224 tests, 791 public declarations documented, its scenarios pass. Release, 1280×800: idle 0.52 → 0.55 ms, the AI workspace with a transcript and a 3-line prompt 0.59 → 0.58 ms (within the noise).</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M6</span><span class="t">Feedback, file browser, colour picker, welcome</span><span class="meta">filebrowser 751 · colorpick 319 · jobui 176 · welcome 313</span><span class="chip done">done 2026-11-14</span></summary>
+  <div>
+    <ul>
+      <li>Status bar with key-hint chips, toasts, the log; job chips with progress and time left (<code>jobui.zig</code>) through Zui's feedback widgets.</li>
+      <li>File browser: <code>zui_files</code> with BeeModel's kinds (.bee, USD, glTF, OBJ, STL, STEP, images), its places and recent folders, its thumbnails as previews, and export options as the app panel. <code>bscript.zig</code>'s <code>filebrowser.show</code> call goes to the new dialog.</li>
+      <li>Colour picker: Zui's picker (SV square, hue strip, hex, recent colours); the eyedropper through <code>ui.sample_request</code> and <code>onColorSample</code>, read from BeeModel's framebuffer.</li>
+      <li>Welcome screen: cards for templates and recent files.</li>
+    </ul>
+    <div class="lbl">Result (2026-11-14)</div>
+    <ul>
+      <li><b>Moved to Zui:</b> the status bar (one part: the mode's key hints as Zui's key chips, a modal tool's readout, the scene counts, the job as Zui's job chip, and the AI, agents, Image to 3D, co-editing and live link chips as pills that each module describes, <code>app.Chip</code>, instead of drawing); toasts (Zui's, at the bottom right above the status bar, one at a time as before, a click opens the console); the colour picker (Zui's picker in a popup under the field: square, hue, old / new, hex, R G B or H S V, the eyedropper reading BeeModel's canvas, recent colours from the preferences, the scene's colours as swatches); the file browser (<code>zui_files</code> in a dialog over BeeModel's own system calls: places, recent folders, crumbs, sort, filter, hidden files, kinds, a .bee file's own picture as its preview, the export options as its panel, saving over a file asks); the welcome screen (a dialog with cards for the templates and samples, the recent files, the keymap as a drop-down) and the empty viewport's quick actions. All of BeeModel's dialogs are Zui's now: <code>dialogs.key</code> and <code>dialogs.draw</code> are gone. <code>filebrowser.zig</code> 751 → 337 lines, <code>colorpick.zig</code> 319 → 161, <code>jobui.zig</code> 176 → 151.</li>
+      <li><b>Changed on purpose:</b> the picker has Zui's layout and an RGB / HSV switch rather than both rows; the browser's name field no longer takes a folder or a <code>~/</code> path (Ctrl+L types a path); a file browser's kind list names the kind ("OBJ (.obj)", "BeeModel scenes (.bee)") and offers All files; the welcome screen's templates are cards.</li>
+      <li><b>BeeZigUi:</b> <code>toast_align</code> (toasts at the right edge). Fixed: B18, Backspace on the wheel with the pointer on a child of the open arc crashed (found by BeeModel's fuzz), with a test.</li>
+      <li><b>Tests:</b> <code>step.py</code> finds the browser's files as <code>row:</code> records (they were <code>file:</code>).</li>
+      <li><b>Gate:</b> 325 / 325 scenarios; <code>menus_wl.py</code>, <code>wl.py</code> (its 2 old failures about a panel window's title are gone), <code>uishell.py</code>, <code>nodeed.py</code>, <code>physui_wl.py</code>, <code>curves_wl.py</code>, <code>library.py</code>, <code>jobs_wl.py</code>, <code>bs_window.py</code>, <code>landscape_wl.py</code>, <code>files6.py</code>, <code>rig.py</code>, <code>sculpt.py</code>, <code>ai.py</code>, <code>copilot.py</code>, <code>autosave.py</code>, <code>livelink.py</code>, <code>review10.py</code>, <code>objmtl.py</code>, <code>gltf.py</code>, <code>usd.py</code>, <code>fuzz.py 200</code> (twice), <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code> (twice), <code>fuzz_edit.py 100</code>: 0 failures. Failing as on the M4 or M5 build, not the UI's: <code>aitools.py</code>'s outliner.tidy_ai prompt (0 bytes on M4 too), <code>coedit.py</code>'s Follow button, <code>step.py</code>'s tessellated volumes and a watertight rod (the same 3 on M5). BeeZigUi: 226 tests, 791 public declarations documented. Release, 1280×800: idle 0.54 ms (as M5), the file browser open 0.95–1.04 → 0.93–0.94 ms.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M7</span><span class="t">The shell: areas, docking, workspaces, bars</span><span class="meta">app.zig 2,745 · panelwin.zig 293 · uiops.zig 67 · wsfile.zig</span><span class="chip todo">to do</span></summary>
+  <div>
+    <p>The riskiest step: everything else sits inside it. It comes after the panels so that by now every area body is already Zui, and only the frame around them moves.</p>
+    <p><b>Moved after M8 and M9 (decided 2026-11-15).</b> When M6 ended, the viewport, timeline, Dope Sheet, Graph, Render, UV and node editors were still BeeModel's, drawn in its own passes. Zui draws its windows after everything else in the frame, so a floating panel holding one of them would cover it, and the hit pass those editors use cannot go. With M8 and M9 done first, every area body is Zui's and the dock swap, the floating panels and the end of the hit pass happen together.</p>
+    <ul>
+      <li>The area tree (<code>nodes[512]</code>) becomes one <code>zui.Dock</code> per workspace (up to 32 areas each; check that BeeModel's six workspaces and user layouts fit). <code>editors.header</code> / <code>editors.body</code> become the body of <code>beginArea</code>.</li>
+      <li>Area headers with the editor-type list (18 kinds), split, join by the corner, maximize (Ctrl+Space), close, dock and swap by dragging the header, floating panels with five dock guides, F6 / Shift+F6.</li>
+      <li>Workspace tabs: add, rename, close, switch; layouts saved with <code>Dock.write</code> inside BeeModel's workspace files. A one-time converter reads the old layout format (<code>wsfile.zig</code>, <code>.bee</code> layouts) so saved scenes keep their areas.</li>
+      <li>Floating panels in OS windows: <code>panelwin.zig</code> drives detached Zui windows from <code>ui.viewports()</code> on BeeModel's own Wayland connection.</li>
+      <li>Title bar: <code>ui.clientFrame</code> (move, resize edges, minimize, maximize, close, unsaved dot), its actions passed to <code>wayland.zig</code>.</li>
+      <li>The <code>area.*</code> and <code>workspace.*</code> operators (<code>uiops.zig</code>) act on the Dock; MCP <code>viewport_capture</code> and BeeScript find the viewport through the Dock's area list (<code>app.viewportArea()</code> keeps its meaning).</li>
+      <li>BeeModel's hit pass is removed: <code>app.frame</code> runs once per frame, inside the Zui frame.</li>
+      <li>From M9: the pointer in a panel's own window (Open in New Window) is tested against the main window's Zui claims at the same coordinates, so a Zui part of the main window can take it; a viewport moved to its own window does not orbit or zoom (already so on the M8 build). Panel windows as Zui's detached windows (their own input and claims) fix it.</li>
+      <li>From M4: the menus, pies and wheel in a panel's own window become Zui's with that window; then the old menu drawing in <code>menus.zig</code> (from <code>layout</code> to <code>drawList</code>, <code>drawList0</code>) and <code>ui.L_POPUP</code> go. The bar's titles become a Zui menu bar (<code>beginMenuBar</code>), so <code>externalBar</code> is no longer needed.</li>
+    </ul>
+    <div class="lbl">Done when</div>
+    <p><code>fuzz_areas.py</code> passes at small window sizes; old <code>.bee</code> files open with their layout; <code>ui.L_BASE</code> / <code>L_FLOAT</code> are unused.</p>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M8</span><span class="t">2D editors and the node editor</span><span class="meta">animed 636 · uved 668 · render 551 · nodeed 3,596</span><span class="chip done">done 2026-11-15</span></summary>
+  <div>
+    <ul>
+      <li>Timeline, Dope Sheet, Graph Editor (<code>animed.zig</code>): <code>beginView2D</code> with frame and value rulers, the playhead, pan and zoom, box select, key and Bézier handles as Zui handles; channel lists on the left as Zui lists. Curves and keys painted through the view's painter.</li>
+      <li>UV Editor (<code>uved.zig</code>): a View2D over the texture image; edges, islands and heat maps as meshes and paths; its modal tools keep the input while they run.</li>
+      <li>Render editor (<code>render.zig</code>): <code>imageView</code> over the result, which the tracer updates in place (<code>Image.touch</code>); pass and slot selectors as widgets.</li>
+      <li>Node Editor (<code>nodeed.zig</code>, the largest UI file): <code>zui_nodes</code> over BeeModel's own graphs (<code>shgraph</code>, <code>geonodes</code>, <code>logic</code>), applying the editor's edit list to them; Shift+A add menu from the 42 shader node types and the geometry and logic nodes; node fields with the panel kit. Done in three parts: shader, geometry nodes, logic graphs.</li>
+    </ul>
+    <div class="lbl">Watch</div>
+    <p>A 200-node graph costs ~9.6 ms to render in software in Zui's benchmark: measure BeeModel's largest scenes and optimise in BeeZigUi (culling, cached node bodies) if needed. The zoomed node text (<code>text.setNodePx</code>) maps to Zui's sharp-text zoom.</p>
+    <div class="lbl">Progress (2026-11-15)</div>
+    <ul>
+      <li><b>Done:</b> the Render editor (Zui's image view over the tracer's buffer, wrapped without a copy and touched when it changes; the header's Render and Settings), the Timeline, Dope Sheet and Graph Editor, and the UV editor (its square, grid, edges, heat maps as Zui polygons, the paint texture as a Zui image with nearest sampling; its header's buttons and heat-map drop-down). The 2D editors are ported in their own layout, drawn with Zui's painter and handled through Zui's interaction, so every click position the tests use still lands; Zui's View2D rulers, pan and zoom for the key editors are left for later (they would move every position).</li>
+      <li><b>Found on the way:</b> BeeModel's own modal tools (a transform, the UV editor's G / S / R, a mesh tool) lost the pointer over Zui parts: the host now steps aside while one runs (<code>app.modalTool</code>). M6's status bar laid its frame-rate text out in a row, so each change of it asked for another frame (6 frames drawn while idle): the right side is drawn at computed places now. BeeZigUi B19: a toast made between two frames was aged by the time before it.</li>
+      <li><b>The node editor</b> (decided 2026-11-15: a faithful port first, <code>zui_nodes</code> later as its own step): its drawing goes through Zui's painter (a stand-in for the canvas's fill, line and text, the node text at the zoom's size; thumbnails and the material preview as Zui images), its pointer through the part's interaction, once a frame; its header (the graph as a drop-down, New Tree, Add, Palette, Preview, Thumbnails) and the selected node's rows in Properties &gt; Material are Zui widgets (the panel kit). Layout, gestures and every feature as before.</li>
+      <li><b>Batches of input:</b> BeeModel handled each event as it came; in a Zui frame a whole quick drag (press, moves, release) can arrive at once. The node editor and the key editors take the press where it was pressed (<code>press_pos</code>) and finish a drag let go in the same frame. Without it <code>nodeed.py</code> lost 11 checks (links, pick-ups, box then move).</li>
+      <li><b>Gate:</b> 325 / 325 scenarios; <code>nodeed.py</code> (with its window test), <code>shnodes.py</code>, <code>logic.py</code>, <code>anim.py</code>, <code>uv.py</code>, <code>menus_wl.py</code>, <code>wl.py</code>, <code>uishell.py</code>, <code>physui_wl.py</code>, <code>curves_wl.py</code>, <code>library.py</code>, <code>jobs_wl.py</code>, <code>bs_window.py</code>, <code>landscape_wl.py</code>, <code>files6.py</code>, <code>rig.py</code>, <code>sculpt.py</code>, <code>ai.py</code>, <code>copilot.py</code>, <code>autosave.py</code>, <code>livelink.py</code>, <code>fuzz.py 200</code>, <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code>, <code>fuzz_edit.py 100</code>: 0 failures. <code>geonodes.py</code>: 1 (a full tree's save / open round trip), the same on the M6 build; <code>paint.py</code>: its 2 old ones. Release, 1280×800: idle 0.49 ms, Shading with a material 0.57 → 0.56, Animation with keys 0.51 → 0.55 (as before, within the noise).</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M9</span><span class="t">The viewport's frame and overlays</span><span class="meta">editors.zig viewport host · sketchui 958 · xform · welcome overlay</span><span class="chip done">done 2026-11-15</span></summary>
+  <div>
+    <ul>
+      <li>The viewport area becomes a Zui canvas (<code>beginCanvas</code>): the rasterizer, path tracer and GPU helper keep writing pixels into BeeModel's buffer at the canvas rect (no copy); orbit, pan and zoom, picking and the 3D cursor read the canvas interaction.</li>
+      <li>Header (mode, shading, grid, snap, pivot, overlays), the gizmo's zoom / pan / ortho / camera buttons, the HUD and the operator hints are Zui widgets on top.</li>
+      <li>In-view panels and overlays that are widgets (sketch toolbar and dimension fields in <code>sketchui.zig</code>, curve edit panels, measure labels, typed values during G / R / S) move to Zui; pure drawing (sculpt and paint cursors, gizmo, onion skins) stays BeeModel's.</li>
+      <li>From M3: files dropped from the system (<code>drop.zig</code>) go through <code>ui.input.onFileDrop</code> to the zone under the pointer (<code>fileDrop</code>), the viewport the first; what no zone takes opens by its kind, as now.</li>
+      <li>Look at the viewport's frame cost with many objects first: 18.8 ms with 8,003 objects all hidden (M3's check).</li>
+    </ul>
+    <div class="lbl">Done when</div>
+    <p>The viewport frame time at idle and during orbit is within 2 % of before; <code>--live-wait</code> and <code>--render-wait</code> scenarios pass.</p>
+    <div class="lbl">Progress (2026-11-15)</div>
+    <ul>
+      <li><b>The view:</b> a Zui part over the area's body. The panels over the view are described first, inside it (the redo panel, the sculpt and paint bars, the AI proposal's banner, the welcome actions, the merge panel, the gizmo's buttons), so a press on one is theirs; then the view's own input; then the rasterizer, path tracer or GPU helper writes the view into BeeModel's buffer in place, BeeModel draws its overlays (gizmo, brush, measure lines, knife, loop cut, box), and Zui draws the panels and the corner text over all of it when the part ends (a part inside another is drawn with it: <code>zuihost</code> nests them).</li>
+      <li><b>Its input:</b> once a frame, from Zui's ordered pointer events (BeeZigUi A16, new: <code>Input.pointerEvents</code>, with a pen's pressure per event): every mode is handled as BeeModel handled each event (orbit, pan, zoom, clicks, the tools' drags, edit mode and box select, sketch, curves, armature, measure, knife, loop cut, the gizmo, sculpt and paint strokes with every sample), on a Zui canvas at the area's rect (A17, <code>CanvasOptions.rect</code>). The header (mode, View / Select / Object, select modes, shading, grid, snap, pivot, overlays) is Zui buttons at the original's places; the corner text, the tools' lines, the sketch's status and the measure line are Zui text. The pointer's shape goes to Zui (A18: grab hands).</li>
+      <li><b>Files dropped</b> on the window go to Zui's drop zones (<code>fileDrop</code>): on a 3D viewport an image lands where it is let go (through the 3D cursor, as an asset dragged there); elsewhere every file opens by its kind, as before. <code>--drop-at X,Y LIST</code> drives it headless; <code>files6.py</code> checks both.</li>
+      <li><b>Found on the way:</b> sculpt ended a stroke whose button BeeModel's own state said was up (the view's press is Zui's now: 10 checks of <code>sculpt.py</code>), and the wheel menu opened by a held right button took it for a click: both read Zui's buttons too (<code>zuihost.buttonDown</code>). Play mode keeps the pointer as the modal tools do. M3's "18.8 ms with 8,003 objects all hidden" was a wrong measurement: the hide never ran (its operator needs a selection), so it timed 8,000 visible cubes; with them hidden a frame takes 1.1 ms, as an empty scene.</li>
+      <li><b>Speed:</b> Zui's icons were stretched to the text's height and filtered pixel by pixel; BeeZigUi P16 keeps pixel-art icons at whole multiples of their size and copies a mask drawn 1:1. The viewport header went 68 → 14 µs, all of Zui's parts 316 → 139 µs a frame. Release, 1280×800, best of 8: idle 0.77 → 0.71 ms, a 1.0 MB sculpted ball 2.75 → 2.67 ms; an orbit (500 frames) the same within noise, the view after it identical. The Outliner's object icons are now 16 px, as BeeModel drew them (M3 to M8 stretched them to 24).</li>
+      <li><b>Order with Zui's windows:</b> the view is described before Zui's dialogs and popups, so it takes no input while a modal client is up (the Preferences, the Ask AI box, a menu) or where a Zui window is shown (<code>zuihost.inFront</code>); without it a click outside the Ask AI box also deselected, and clicks in the Preferences over the view were the view's (<code>ai.py</code>). A frame whose pointer input was all the view's needs no settle frame after it (it renders after its input; <code>zuihost.viewTookAll</code>), so a stroke draws once per batch. The headless driver draws a frame before a step that follows pointer events Zui has not seen.</li>
+      <li><b>Gate:</b> 325 / 325 scenarios; <code>sculpt.py</code>, <code>sketch.py</code>, <code>curves.py</code>, <code>curves_wl.py</code>, <code>rig.py</code>, <code>vc.py</code>, <code>analysis.py</code>, <code>redopanel.py</code>, <code>uishell.py</code>, <code>wl.py</code>, <code>menus_wl.py</code>, <code>nodeed.py</code>, <code>shnodes.py</code>, <code>logic.py</code>, <code>anim.py</code>, <code>uv.py</code>, <code>physui_wl.py</code>, <code>library.py</code>, <code>jobs_wl.py</code>, <code>bs_window.py</code>, <code>landscape_wl.py</code>, <code>files6.py</code>, <code>ai.py</code>, <code>copilot.py</code>, <code>autosave.py</code>, <code>livelink.py</code>, <code>play.py</code>, <code>playwin.py</code>, <code>particles_wl.py</code>, <code>landui_wl.py</code>, <code>fuzz.py 200</code>, <code>fuzz_prefs.py 300</code>, <code>fuzz_areas.py 100</code>, <code>fuzz_edit.py 100</code>: 0 failures. Known, the same on M8: <code>paint.py</code> 2, <code>geonodes.py</code> 1, <code>coedit.py</code> 2, <code>text3d_wl.py</code> 3 (Convert to Mesh by its button); <code>sketch.py</code>'s save / open round trip fails on some seeds. Idle after a stroke: 0 frames drawn.</li>
+    </ul>
+  </div>
+</details>
+
+<details class="ms">
+  <summary><span class="id">M10</span><span class="t">Retire the old UI layer</span><span class="meta">ui.zig 646 · wg.zig 433 · gfx widget helpers · main.zig driver · mcp.zig</span><span class="chip todo">to do</span></summary>
+  <div>
+    <ul>
+      <li>Delete the widget half of <code>ui.zig</code> (buttons, fields, text editing, tooltips, layers, ids) and <code>wg.zig</code>; keep only what the viewport needs from <code>gfx.zig</code> (the triangle rasterizer and depth buffer, moved next to <code>viewport.zig</code>). <code>text.zig</code> / <code>ttf.zig</code> stay only if the viewport or 3D text still needs them.</li>
+      <li>The record bridge goes: <code>main.zig</code>'s <code>--click-label</code>, <code>--expect-*</code> and <code>--dump-ui</code> read <code>ui.widgets()</code> / <code>ui.findWidget</code> directly; MCP <code>ui_tree</code> serialises Zui's record and gains values, focus and tooltips it reports as null today. Optionally accept Zui script files (<code>--script</code>) next to the old flags.</li>
+      <li>From M4: keyboard focus. Zui's Tab order, focus ring and focus scopes replace <code>kbnav.zig</code> and the focus ring of <code>wg.zig</code>, once every area is Zui's.</li>
+      <li>Decide D4 (move the window to <code>zui_wayland</code> or keep <code>wayland.zig</code>).</li>
+      <li>Update <code>README.md</code> (layout table, "the UI is one immediate-mode function"), <code>Docs/zui-pilot.md</code> (point here), and Zui's <code>PLAN.html</code> Phase 27 to done.</li>
+    </ul>
+    <div class="lbl">Done when</div>
+    <p><code>grep -rn "ui\.\(press\|hover\|button\|numField\|valueField\|textField\|cv\.\)" src/</code> finds nothing outside the viewport's drawing; the <a href="#done">definition of done</a> holds.</p>
+  </div>
+</details>
+
+<h2 id="map">File map</h2>
+<p class="sub">Every BeeModel file with UI code, what replaces it in Zui, and its milestone. Lines from <code>wc -l</code> on 2026-11-14.</p>
+<div class="wrap"><table>
+  <tr><th>File</th><th class="n">Lines</th><th>Today</th><th>Zui replacement</th><th>MS</th></tr>
+  <tr><td><code>zuiprefs.zig</code></td><td class="n">744</td><td>The pilot</td><td>Becomes <code>zuihost.zig</code> + dialog code</td><td>M0</td></tr>
+  <tr><td><code>dialogs.zig</code>, <code>prefpages.zig</code></td><td class="n">933</td><td>About, Shortcuts, Undo History, Preferences</td><td><code>beginDialog</code>, text view, lists, property fields, <code>shortcutField</code></td><td>M1</td></tr>
+  <tr><td><code>forms.zig</code>, <code>redo.zig</code></td><td class="n">816</td><td>Operator forms, redo panel</td><td>Dialog + panel kit rows</td><td>M1</td></tr>
+  <tr><td><code>physui</code>, <code>landui</code>, <code>partui</code>, <code>cadui</code>, <code>animui</code>, <code>rigui</code>, <code>textui</code>, <code>fieldui</code>, <code>shatterui</code>, <code>bakeui</code></td><td class="n">3,698</td><td>Properties tabs and sections</td><td>Panel kit: sections, number fields, drop-downs, toggles, op buttons</td><td>M2</td></tr>
+  <tr><td><code>graphcmds</code>, <code>curveui</code>, <code>sculptui</code>, <code>paintui</code></td><td class="n">1,923</td><td>Panels and brush bars</td><td>Panel kit (cursors stay BeeModel's)</td><td>M2</td></tr>
+  <tr><td><code>editors.zig</code></td><td class="n">2,549</td><td>Viewport host, Tools, Outliner, Properties, Console</td><td>Split over M2 (Properties, Tools), M3 (Outliner), M5 (Console), M9 (viewport host)</td><td>M2–M9</td></tr>
+  <tr><td><code>outfolders</code>, <code>libui</code>, <code>versions</code>, <code>agent</code></td><td class="n">1,760</td><td>Outliner folders, Asset Browser, Versions, AI Activity</td><td>Lists, tree rows, tiles, drag and drop</td><td>M3</td></tr>
+  <tr><td><code>menus.zig</code></td><td class="n">993</td><td>Menu bar, context menus, F3</td><td>Menu bar, context menus, command palette</td><td>M4</td></tr>
+  <tr><td><code>pies.zig</code></td><td class="n">703</td><td>Pies and the wheel</td><td><code>pie</code>, <code>wheel</code></td><td>M4</td></tr>
+  <tr><td><code>kbnav.zig</code>, <code>wg.zig</code></td><td class="n">475</td><td>Focus ring, last-pass widget list</td><td>Zui focus and Tab order, <code>hoveredWidget</code></td><td>M4 / M10</td></tr>
+  <tr><td><code>ai</code>, <code>aiask</code>, <code>mltext</code>, <code>copilot</code>, <code>helped</code></td><td class="n">3,236</td><td>AI Assistant, Ask AI, multi-line field, co-pilot, Help</td><td>Text view, text area, rich text</td><td>M5</td></tr>
+  <tr><td><code>filebrowser</code>, <code>colorpick</code>, <code>jobui</code>, <code>welcome</code></td><td class="n">1,559</td><td>File browser, colour picker, job chips, start screen</td><td><code>zui_files</code>, colour picker, feedback, cards</td><td>M6</td></tr>
+  <tr><td><code>app.zig</code>, <code>panelwin.zig</code>, <code>uiops.zig</code></td><td class="n">3,105</td><td>Areas, docking, workspaces, bars, input routing</td><td><code>zui.Dock</code>, tab bars, <code>clientFrame</code>, detached windows, status bar</td><td>M7</td></tr>
+  <tr><td><code>animed</code>, <code>uved</code>, <code>render</code></td><td class="n">1,855</td><td>Timeline / Dope Sheet / Graph, UV editor, Render editor</td><td><code>beginView2D</code>, handles, <code>imageView</code></td><td>M8</td></tr>
+  <tr><td><code>nodeed.zig</code></td><td class="n">3,596</td><td>Node Editor</td><td><code>zui_nodes</code></td><td>M8</td></tr>
+  <tr><td><code>sketchui</code>, viewport HUD, <code>xform</code> fields</td><td class="n">958+</td><td>In-view panels and typed values</td><td>Canvas + widgets over it</td><td>M9</td></tr>
+  <tr><td><code>ui.zig</code>, <code>gfx.zig</code>, <code>text.zig</code>, <code>main.zig</code> driver, <code>mcp.zig</code> ui_tree</td><td class="n">2,365+</td><td>UI core, test and agent hooks</td><td>Deleted or reduced to viewport drawing; driver and MCP on Zui's record</td><td>M10</td></tr>
+  <tr><td>~20 files with small UI touches (<code>autosave</code>, <code>world</code>, <code>vc</code>, <code>extlib</code>, <code>link</code>, <code>vgdraw</code>, <code>print</code>, <code>hi3d</code>, <code>refimg</code>, <code>cosync</code>, <code>ops</code>, <code>play</code>, …)</td><td class="n">—</td><td>A button, a toast, a status line</td><td>Moved with the milestone that owns the place they draw in</td><td>M2–M9</td></tr>
+  <tr><td>Stays: <code>viewport</code>, <code>vpraster</code>, <code>gpuraster</code>, <code>gview</code>, <code>live</code>, <code>livegpu</code>, <code>sculptdraw</code>, <code>partdraw</code>, <code>motion</code>, <code>measure</code>, <code>preview</code>, <code>stroke</code></td><td class="n">—</td><td>3D content</td><td>Unchanged; drawn into the viewport canvas</td><td>—</td></tr>
+</table></div>
+
+<h2 id="contract">Test contract</h2>
+<div class="card">
+  <p>The widget record is the interface between the UI and everything that checks or drives it: the <code>--shot</code> driver (<code>--click-label</code>, <code>--expect-label</code>, <code>--expect-off</code>, <code>--expect-field</code>, <code>--dump-ui</code>), 315 scenarios, 47 Python tests, six fuzzers, the MCP <code>ui_tree</code> tool and the AI agents. It must not break at any step.</p>
+  <ul>
+    <li><b>Names stay.</b> A moved widget keeps BeeModel's kind and label: a Zui <code>numberField</code> records as <code>number</code>, a menu item as <code>menuitem</code>, a tree row as <code>row</code>, a tile as <code>tile</code>. The bridge holds one mapping table from Zui kinds to BeeModel's ~50 kinds; custom ones (<code>keyrow</code>, <code>swatch</code>, <code>channel</code>, <code>addnode</code>…) are recorded with <code>ui.recordWidget</code>.</li>
+    <li><b>Hidden is not listed.</b> Zui leaves scrolled-away and covered widgets out of the record. Scenarios that relied on BeeModel listing hidden widgets get a scroll step, never a weaker check.</li>
+    <li><b>Scenarios do not change to make a step pass.</b> If one must change (a label that was wrong, a widget that moved menus), the change and its reason go in the milestone's notes.</li>
+    <li><b>New scenarios per step</b> for what Zui adds (keyboard reach of every menu item, disabled reasons, drop refusals).</li>
+  </ul>
+</div>
+
+<h2 id="zuiwork">Work in BeeZigUi</h2>
+<p class="sub">Gaps visible today, to close in the library (D8) before or during the milestone that needs them. The full list of bugs, performance work and API gaps found in BeeZigUi, with reproductions and the order to take them in, is <code>../BeeZigUi/Docs/improvements.html</code>.</p>
+<div class="wrap"><table>
+  <tr><th>Gap</th><th>Needed for</th><th>MS</th></tr>
+  <tr><td>Icon set from 1-bit / alpha masks of BeeModel's format (128-byte masks) at any UI scale</td><td>Every toolbar, row and tab</td><td>M0</td></tr>
+  <tr><td>Undo in multi-line text areas (Zui known limit; done in M5)</td><td>AI prompt</td><td>M5</td></tr>
+  <tr><td>Label wrapping (Zui labels don't wrap)</td><td>Tooltips in panels, AI and help text, long property names in narrow areas</td><td>M2</td></tr>
+  <tr><td>Dock tree size: 32 areas per dock; confirm against BeeModel's largest layouts (BeeModel allows 512 nodes)</td><td>Shell</td><td>M7</td></tr>
+  <tr><td>Detached windows driven by a host that owns its Wayland connection (Zui does it inside <code>zui_wayland</code> today)</td><td>Floating panels in OS windows</td><td>M7</td></tr>
+  <tr><td>Node editor: a widget inside a node overlapped by another can take a press (Zui known limit); render cost of large graphs</td><td>Node Editor</td><td>M8</td></tr>
+  <tr><td>Nested 2D views (not supported); minimap assumes y down</td><td>Graph Editor inside a split view, UV editor (y up)</td><td>M8</td></tr>
+  <tr><td>Canvas pixels written by the app in place at the canvas rect, with Zui widgets over them, at fractional scale</td><td>Viewport</td><td>M9</td></tr>
+</table></div>
+
+<h2 id="risks">Risks</h2>
+<div class="wrap"><table>
+  <tr><th>Risk</th><th>Effect</th><th>Mitigation</th></tr>
+  <tr><td><span class="chip risk">high</span> Shell move (M7)</td><td>Every area, saved layout and docking gesture changes at once</td><td>Last of the widget milestones, so area bodies are already Zui; layout converter with round-trip tests; <code>fuzz_areas.py</code> at small sizes; a live session of docking before deleting the old shell.</td></tr>
+  <tr><td><span class="chip risk">high</span> Node editor size (M8)</td><td>3,596 lines, three graph kinds, many scenarios</td><td>Three sub-steps (shader, geometry, logic); the graph model stays, only the view moves.</td></tr>
+  <tr><td><span class="chip partial">medium</span> Frame time</td><td>Mixed frames run two UI systems; software render of large Zui areas</td><td>Bench at each gate against the 3 ms / 0.7 ms budget; Zui's shadow and fill optimisations; profile before optimising.</td></tr>
+  <tr><td><span class="chip partial">medium</span> Input ordering while mixed</td><td>An event handled twice or by neither side</td><td>One routing function in <code>zuihost</code>, fuzzed (<code>fuzz.py</code>) at every gate; modal tools always first.</td></tr>
+  <tr><td><span class="chip partial">medium</span> Look drift</td><td>Screenshots differ, users notice</td><td>Style built from BeeModel's themes; side-by-side screenshot review of every moved part in at least two themes.</td></tr>
+  <tr><td><span class="chip todo">low</span> Test names</td><td>Scenarios stop finding widgets</td><td>The record bridge and its mapping table from M0; failing scenarios block the step.</td></tr>
+</table></div>
+
+<h2 id="done">Definition of done</h2>
+<div class="card note">
+  <ul>
+    <li>Every UI element in BeeModel is described with Zui; BeeModel's own widget, menu, dialog, focus and area code is deleted.</li>
+    <li>BeeModel draws only content: the 3D view and the content of 2D editors, through Zui canvases, images and painters.</li>
+    <li>All scenarios, unit tests, fuzzers and the .bee round trip pass; MCP <code>ui_tree</code> and the shot driver work on Zui's record.</li>
+    <li>Frame times within the budget; idle CPU zero; nine themes, the accent and colour-blind mode look as before.</li>
+    <li>Still one static binary with no libc for <code>beemodel</code>.</li>
+    <li><code>README.md</code>, <code>Docs/features.html</code>, <code>Docs/zui-pilot.md</code> and Zui's <code>PLAN.html</code> are updated.</li>
+  </ul>
+</div>
+
+</main>
+<footer>BeeModel · Docs/beezigui-migration.html · plan as of 2026-11-14. Update each milestone's chip (to do → partial → done) as work lands.</footer>
+</body>
+</html>

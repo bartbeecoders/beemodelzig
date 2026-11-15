@@ -1,0 +1,22 @@
+# Outliner and assets: select, rename, fold, reparent by dragging (and a
+# refused loop), assets dragged into the viewport, sideways scrolling.
+click custom:Chair fold
+click row:Chair
+key down
+expect row:Leg 1 = true
+key shift+down
+expect row:Leg 2 = true
+double-click row:Table
+key ctrl+a
+type Desk
+key enter
+expect row:Desk exists
+drag row:Camera to row:Desk
+expect row:Camera exists
+drag row:Props to row:Leg 3
+click custom:Scattered rocks fold
+expect row:Rock.0010 exists
+click toggle:Sun visible
+expect toggle:Sun visible = false
+drag tile:Asset 2 to canvas:viewport
+shot zig-out/scenarios/19_outliner.png

@@ -1,0 +1,29 @@
+# Feedback: cards that ask first, a modal "Save changes?", a form dialog,
+# a render job chip, toasts.
+expect card:Terrain disabled
+click card:Character
+expect dialog:Save changes? exists
+click button:Export...
+expect dialog:Export OBJ missing
+key escape
+expect dialog:Save changes? missing
+expect label:BeeModel   Untitled (changed) exists
+click card:Character
+key enter
+expect label:BeeModel   Character exists
+click button:Export...
+click text_input:File
+key ctrl+a
+type chair.obj
+key tab
+key tab
+key tab
+expect checkbox:Selected objects only focused
+key space
+shot zig-out/scenarios/18_dialog.png
+key enter
+expect toast:Exported chair.obj exists
+click button:Render
+wait 4
+expect job:Rendering exists
+shot zig-out/scenarios/18_feedback.png

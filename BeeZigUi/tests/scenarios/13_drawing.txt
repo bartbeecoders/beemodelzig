@@ -1,0 +1,8 @@
+# Drawing: stop the animation for a stable picture, icon buttons by name.
+click checkbox:Animate
+expect checkbox:Animate = false
+hover button:warning
+wait 0.8
+expect tooltip:warning exists
+click button:pointer
+shot zig-out/scenarios/13_drawing.png

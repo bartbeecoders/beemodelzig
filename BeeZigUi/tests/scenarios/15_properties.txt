@@ -1,0 +1,23 @@
+# Property editing: scrub, type an expression, the shared field menu,
+# a list pick that enables another field, undo, a disabled reason.
+drag number:Location X by 80 0
+expect number:Location X = 0.8 m
+click number:Power
+type 2*100
+key enter
+expect number:Power = 200 W
+right-click number:Power
+click Field menu > button:Reset to Default
+expect number:Power = 250 W
+expect number:Cone disabled
+click dropdown:Type
+expect Type > choice:Area disabled
+click choice:Spot
+expect number:Cone enabled
+click button:Undo
+expect dropdown:Type = Point
+expect number:Cone disabled
+hover segment:Rendered
+wait 1
+expect tooltip:No GPU helper found exists
+shot zig-out/scenarios/15_properties.png

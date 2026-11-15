@@ -1,0 +1,30 @@
+# The file browser on examples/25_files/sample: folders, kinds, a PNG
+# preview, sorting, going up, saving over a file, export settings.
+expect row:models exists
+expect row:scene.bee exists
+double-click row:textures
+click dropdown:kind
+click choice:All files
+click row:brick.png
+expect custom:preview = brick.png
+expect label:64 × 64 exists
+click button:Name ▲
+key backspace
+expect row:scene.bee exists
+key ctrl+h
+expect row:.hidden_settings exists
+key ctrl+h
+click segment:Save As
+double-click row:models
+click row:chair.bee
+expect text_input:File name = chair.bee
+click button:Save
+expect button:Replace exists
+click button:Keep It
+expect button:Replace missing
+click segment:Export glTF
+expect checkbox:Apply modifiers exists
+click text_input:File name
+key ctrl+a
+type chair
+shot zig-out/scenarios/25_files.png

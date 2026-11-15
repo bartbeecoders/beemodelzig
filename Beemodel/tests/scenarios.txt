@@ -1,0 +1,333 @@
+# name | arguments for beemodel --shot (one scenario per line; see src/main.zig)
+default |
+palette_theme | --key f3 --type theme
+menu_view_theme | --click-label menu:View --move-label menuitem:Theme
+menu_tooltip | --click-label menu:Edit --move-label menuitem:Undo --wait 800
+grab_x_typed | --move 615,360 --key g --key x --type 2
+grab_confirmed_undo | --move 615,360 --key g --move 700,330 --click 700,330 --key ctrl+z
+rotate_free | --move 615,360 --key r --move 700,300
+scale_typed | --move 615,360 --key s --type 1.5 --key enter
+duplicate_grab | --move 615,360 --key shift+d --move 750,300 --click 750,300
+add_menu | --move 615,360 --key shift+a
+multi_select | --click 615,360 --shift-key a --click-label menuitem:Cylinder --click-label row:Cube --key ctrl+a
+outliner_ctrl | --click-label row:Camera --key ctrl+a
+header_dock_left | --drag 800,70,1100,200
+header_swap | --drag 800,70,1150,140
+float_panel | --rclick 1100,70 --click-label "menuitem:Float Area"
+float_guides | --rclick 1100,70 --click-label "menuitem:Float Area" --drag 1080,110,600,350
+join_corner | --drag 1030,59,1030,400
+shortcuts | --key f1
+shortcuts_search | --key f1 --type undo
+history | --click 615,360 --key x --key shift+a --click-label menuitem:Cube --click-label menu:Edit --click-label "menuitem:Command Palette..." --type history --key enter
+workspace_new | --click-label button:+
+workspace_rename | --dbl-label button:Modeling --type Mine --key enter
+themes_scene_tab | --click-label tab:Scene
+theme_dracula | --click-label tab:Scene --click-label theme:Dracula
+theme_light | --click-label menu:View --move-label menuitem:Theme --click-label menuitem:Light
+theme_contrast | --key f3 --type "high contrast" --key enter
+f6_ring | --key f6 --key f6
+hide_reveal | --move 615,360 --key h
+console_cmds | --key enter --type "add sphere" --key enter --type "move 1 2cm 3*2" --key enter --type list --key enter
+greyed_key | --move 615,360 --key e
+cursor_place | --move 800,450 --rclick 800,450
+small_window | --size 640x420
+viewport_header_menus | --click-label "button:Object Mode"
+overlays_menu | --click-label icon:Overlays
+pivot_menu | --click-label "icon:Pivot and Orientation"
+ortho_numpad5 | --move 615,360 --key kp5 --wait 400
+camera_view | --move 615,360 --key kp0
+camera_to_view | --move 615,360 --key ctrl+alt+kp0
+front_view_glide | --move 615,360 --key kp1 --wait 400
+wheel | --rclick 615,360 --move-label wheel:Material
+wheel_preset | --rclick 615,360 --key 7 --key 1
+pie_shading | --move 615,360 --keydown z --wait 300 --move 615,250
+pie_tap_wire | --move 615,360 --key z
+viewport_tab | --click-label tab:Viewport
+outliner_filter | --click-label "text:Filter by name" --type cam
+outliner_lock | --click-label toggle:Cube
+cursor_surface | --move 615,340 --shift-drag 615,340,615,340 --rclick 615,340
+preferences | --key ctrl+comma
+preferences_search | --key ctrl+comma --click-label "text:Search settings" --type motion
+preferences_input | --key ctrl+comma --click-label button:Input
+colour_picker | --click-label colour:Colour
+colour_picker_drag | --click-label colour:Colour --drag 1050,520,1150,480
+colour_picker_hex | --click-label colour:Colour --click-label text:#b4b8c0 --type 61afef --key enter
+light_spot | --click-label row:Light --click-label enum:Point --click-label menuitem:Spot
+light_sun | --click-label row:Light --click-label enum:Point --click-label menuitem:Sun
+camera_lens | --click-label row:Camera --move 615,360 --key kp0
+parent_ctrl_p | --move 615,360 --key shift+a --click-label menuitem:Cylinder --mods shift --click-label row:Cube --mods none --move 615,360 --key ctrl+p
+parent_moves_child | --click-label row:Camera --mods ctrl --click-label row:Cube --mods none --move 615,360 --key ctrl+p --key g --key x --type 3 --key enter
+parent_drag_row | --drag 1080,90,1080,130
+keymap_fr_text | --keymap tests/keymaps/fr.xkb --key enter --type "été ça à " --mods shift --key 26 --mods none --type u --key enter
+keymap_fr_undo | --keymap tests/keymaps/fr.xkb --move 615,360 --key x --key ctrl+z
+keymap_de_axis | --keymap tests/keymaps/de.xkb --move 615,360 --key g --key z --type 2 --key enter
+outline_border | --wheel 615,360,-16
+pie_small_window | --size 300x200 --move 100,100 --keydown z --wait 300 --keyup z
+camview_camera_deleted | --move 615,360 --key kp0 --wait 400 --click-label row:Camera --move 615,360 --key delete
+file_open_original | --key enter --type "file.open tests/files/original_default_v2.bee" --key enter
+file_save_dialog | --key ctrl+shift+s
+file_open_dialog | --key ctrl+o
+save_changes_prompt | --move 615,360 --key x --key ctrl+n
+file_recent_menu | --click-label menu:File --move-label "menuitem:Open Recent"
+export_import_obj_stl | --key enter --type "file.export_obj /tmp/beemodel-headless/s.obj" --key enter --type "file.export_stl /tmp/beemodel-headless/s.stl" --key enter --type "file.import_obj /tmp/beemodel-headless/s.obj" --key enter --type "file.import_stl /tmp/beemodel-headless/s.stl" --key enter
+edit_mode_enter | --move 615,360 --key tab
+edit_face_extrude | --move 615,360 --key tab --key 3 --click 640,300 --key e --type 1.5 --key enter
+edit_inset_extrude | --move 615,360 --key tab --key 3 --click 640,300 --key i --type 0.3 --key enter --key e --type 0.8 --key enter
+edit_subdivide | --move 615,360 --key tab --click-label menu:Mesh --click-label menuitem:Subdivide
+edit_delete_face | --move 615,360 --key tab --key 3 --click 640,300 --key x
+edit_merge | --move 615,360 --key tab --key m
+edit_box_select | --move 615,360 --key tab --key a --key b --drag 560,260,700,330
+edit_loop_select | --move 615,360 --key tab --click-label menu:Mesh --click-label menuitem:Subdivide --key 2 --mods alt --click 600,330 --mods none
+edit_dissolve | --move 615,360 --key tab --click-label menu:Mesh --click-label menuitem:Subdivide --key 3 --key ctrl+x
+edit_vertex_move | --move 615,360 --key tab --key a --click 590,250 --key g --key y --type 1 --key enter
+edit_undo | --move 615,360 --key tab --key 3 --click 640,300 --key e --type 1 --key enter --key ctrl+z --key ctrl+z
+edit_wireframe | --move 615,360 --key tab --key z
+edit_recalc_flip | --move 615,360 --key tab --key shift+n --click-label menu:Mesh --move-label menuitem:Normals
+edit_loopcut_preview | --move 615,360 --key tab --key ctrl+r --move 615,350 --wheel 615,350,-2
+edit_loopcut | --move 615,360 --key tab --key ctrl+r --move 615,350 --wheel 615,350,-2 --click 615,350
+edit_bridge | --move 615,360 --key tab --key 3 --click 640,300 --key x --key 1 --key a --key a --key x
+edit_merge_collapse | --move 615,360 --key tab --click-label menu:Mesh --move-label menuitem:Merge --click-label "menuitem:Merge Collapse"
+repair_object | --click-label menu:Object --click-label "menuitem:Repair Mesh"
+separate_loose | --move 615,360 --key tab --key 3 --click 640,300 --key shift+d --key x --type 3 --key enter --key tab --click-label menu:Mesh --move-label menuitem:Separate --click-label "menuitem:Separate By Loose Parts"
+edit_bevel_drag | --move 615,360 --key tab --key 2 --click 640,300 --key ctrl+b --move 680,300 --wheel 680,300,-2 --move 700,300
+edit_bevel_all | --move 615,360 --key tab --key 2 --key enter --type "mesh.bevel \"0.3 3\"" --key enter
+edit_knife_draw | --move 615,360 --key tab --key k --click 560,250 --click 700,420 --move 750,300
+edit_knife_cut | --move 615,360 --key tab --key k --click 560,250 --click 700,420 --key enter
+edit_bisect | --move 615,360 --key tab --key enter --type "mesh.bisect \"0 0.3 0 0 1 0\"" --key enter
+edit_spin | --move 615,360 --key tab --key 2 --click 640,300 --key enter --type "mesh.spin \"8 180 y\"" --key enter
+edit_wheel | --move 615,360 --key tab --rclick 615,360 --move 615,250
+edit_face_dots | --move 615,360 --key tab --key 3 --click 640,300
+edit_move_live | --move 615,360 --key tab --key g --move 700,360 --move 800,360 --move 900,360
+loopcut_bad_index | --move 615,360 --key tab --key enter --type "mesh.loopcut \"0 999\"" --key enter --type "mesh.loopcut \"4294967295 1\"" --key enter --type "mesh.loopcut \"0 6\"" --key enter
+bevel_wide | --move 615,360 --key tab --key 2 --key enter --type "mesh.bevel \"1 2\"" --key enter
+merge_dist_far | --move 615,360 --key tab --key enter --type "mesh.merge_distance \"5\"" --key enter --type "mesh.loopcut \"0 1\"" --key enter
+material_tab | --click 615,360 --click-label tab:Material
+material_new | --click 615,360 --click-label tab:Material --click-label button:New
+material_values | --click 615,360 --click-label tab:Material --key enter --type "material.preset gold" --key enter --type "material.set gold roughness 0.6" --key enter
+material_preset_menu | --click 615,360 --click-label tab:Material --click-label button:Preset...
+material_slot_menu | --click 615,360 --click-label tab:Material --click-label button:New --click-label button:New --click-label button:Material.001
+material_drag | --click 615,360 --click-label tab:Material --click-label button:New --drag 1150,389,1220,389
+material_typed | --click 615,360 --click-label tab:Material --click-label button:New --click 1150,441 --type 2.4 --key enter
+material_picker | --click 615,360 --click-label tab:Material --click-label button:New --click 1210,337
+material_light | --click-label row:Light --click-label tab:Material
+material_wheel | --move 615,360 --click 615,360 --rclick 615,360
+material_undo | --click 615,360 --click-label tab:Material --key enter --type "material.preset chrome" --key enter --key esc --move 615,360 --key ctrl+z
+material_blend | --click 615,360 --click-label tab:Material --click-label button:New --click-label button:Opaque --click-label menuitem:Masked
+material_preview | --click 615,360 --key enter --type "material.preset gold" --key enter --type "add sphere" --key enter --type "move 2.5 1 0" --key enter --type "material.preset glass" --key enter --key esc --move 615,360 --key shift+z
+material_preview_edit | --click 615,360 --key enter --type "material.preset copper" --key enter --key esc --move 615,360 --key shift+z --key tab --key 3 --click 615,330
+render_empty_area | --click-label "editor:3D Viewport" --click-label menuitem:Render
+render_f12 | --key enter --type "render.settings 320 180 16" --key enter --key esc --move 615,360 --key f12 --render-wait
+render_esc | --key enter --type "render.settings 1920 1080 4096" --key enter --key esc --move 615,360 --key f12 --key esc
+render_passes | --key enter --type "render.settings 320 180 8" --key enter --key esc --move 615,360 --key f12 --render-wait --key enter --type "render.pass normal" --key enter
+render_zoom | --key enter --type "render.settings 320 180 8" --key enter --key esc --move 615,360 --key f12 --render-wait --wheel 800,300,-3 --drag 800,300,760,330
+render_save | --key enter --type "render.settings 320 180 8" --key enter --key esc --move 615,360 --key f12 --render-wait --key enter --type "render.save /tmp/beemodel-headless/r.png depth" --key enter
+render_tab | --click-label tab:Render
+render_no_mesh | --click 615,360 --key x --key enter --type "render.settings 160 90 4" --key enter --key esc --move 615,360 --key f12 --render-wait
+# Rendered shading (live.zig): Material Preview until the first samples, then the samples
+rendered_first | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360
+rendered_still | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+rendered_header | --key enter --type "view.rendered_samples 8" --key enter --key esc --click-label icon:Rendered --move 615,360 --live-wait
+rendered_select_keeps | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --click 615,330
+rendered_orbit | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --drag 500,500,560,470
+rendered_move_object | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --click 615,330 --key g --move 700,330 --click 700,330 --live-wait
+rendered_edit | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --key tab --key 3 --click 640,300 --key e --type 1.5 --key enter --live-wait
+rendered_material | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --click 615,330 --live-wait --key enter --type "material.preset gold" --key enter --key esc --move 615,360 --live-wait
+rendered_two_viewports | --click-label button:Shading --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 400,300 --live-wait
+rendered_then_solid | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --key enter --type view.shading_solid --key enter --key esc --move 615,360
+rendered_wire_back | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --key enter --type view.shading_wireframe --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+rendered_no_samples | --key enter --type "view.rendered_samples 0" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+rendered_no_denoise | --key enter --type "view.rendered_samples 8" --key enter --type "view.rendered_denoise 0" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+rendered_during_f12 | --key enter --type view.shading_rendered --key enter --type "render.settings 1920 1080 4096" --key enter --key esc --move 615,360 --key f12
+rendered_after_f12 | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --key enter --type "render.settings 320 180 8" --key enter --key esc --move 615,360 --key f12 --render-wait --live-wait --key enter --type "render.pass normal" --key enter --key esc
+rendered_other_viewport | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --click-label menu:View --click-label "menuitem:Split Area Side by Side" --move 400,300 --live-wait
+rendered_tab_keeps | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --key tab
+rendered_owner_stays | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --click-label menu:View --click-label "menuitem:Split Area Side by Side" --move 800,300 --live-wait --move 1150,300 --live-wait
+rendered_shift_z | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --key shift+z
+rendered_view_menu | --key enter --type "view.rendered_samples 8" --key enter --key esc --click-label menu:View --click-label menuitem:Rendered --move 615,360 --live-wait
+rendered_vertex_move | --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --key tab --key 1 --click 616,254 --key g --move 616,200 --move 616,120 --click 616,120 --live-wait
+rendered_prefs | --click-label menu:Edit --click-label menuitem:Preferences... --click-label button:Viewport
+# modifiers (mods.zig)
+mods_tab | --click-label tab:Modifiers
+mods_add_menu | --click-label tab:Modifiers --click-label "button:Add Modifier"
+mods_mirror_ui | --click-label tab:Modifiers --click-label "button:Add Modifier" --click-label menuitem:Mirror
+mods_stack | --key enter --type "object.modifier_add subsurf" --key enter --type "object.modifier_add array" --key enter --type "object.modifier_add solidify" --key enter --key esc --click-label tab:Modifiers
+mods_all | --key enter --type "object.modifier_add mirror" --key enter --type "object.modifier_add array" --key enter --type "object.modifier_add solidify" --key enter --type "object.modifier_add subsurf" --key enter --type "object.modifier_add bevel" --key enter --type "object.modifier_add decimate" --key enter --type "object.modifier_add remesh" --key enter --key esc --click-label tab:Modifiers --wheel 1150,400,-3
+mods_toggle_off | --key enter --type "object.modifier_add subsurf" --key enter --key esc --click-label tab:Modifiers --click-label checkbox:Subsurf
+mods_apply | --key enter --type "object.modifier_add subsurf" --key enter --key esc --click-label tab:Modifiers --click-label button:Apply
+mods_apply_undo | --key enter --type "object.modifier_add subsurf" --key enter --key esc --click-label tab:Modifiers --click-label button:Apply --move 615,360 --key ctrl+z
+mods_remove | --key enter --type "object.modifier_add subsurf" --key enter --key esc --click-label tab:Modifiers --click-label button:x
+mods_render | --key enter --type "object.modifier_add subsurf" --key enter --type "render.settings 320 180 8" --key enter --key esc --move 615,360 --key f12 --render-wait
+mods_rendered | --key enter --type "object.modifier_add subsurf" --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+mods_edit_mode | --key enter --type "object.modifier_add subsurf" --key enter --key esc --move 615,360 --key tab
+mods_edit_drag | --key enter --type "object.modifier_add subsurf" --key enter --type view.shading_material --key enter --key esc --move 615,360 --key tab --key g --move 680,300 --click 680,300
+mods_ctrl2 | --move 615,360 --key ctrl+2
+mods_no_object | --click 100,600 --click-label row:Light --click-label tab:Modifiers
+hdri_rendered | --key enter --type "image.new sky 64 32" --key enter --type "world.hdri sky" --key enter --type "world.strength 2" --key enter --type "view.rendered_samples 8" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+hdri_scene_tab | --click-label tab:Scene
+render_save_exr | --key enter --type "render.settings 160 90 4" --key enter --key esc --move 615,360 --key f12 --render-wait --key enter --type "render.save /tmp/beemodel-headless-out.exr" --key enter
+mods_boolean_panel | --key enter --type "add sphere" --key enter --type "move 0.7 1.5 0.4" --key enter --key esc --click-label row:Sphere --mods ctrl --click-label row:Cube --mods none --click-label tab:Modifiers --click-label "button:Add Modifier" --click-label menuitem:Boolean
+render_tab_bakes | --click-label tab:Render --move 1100,500 --wheel 1100,500,-20
+probe_boxes | --key enter --type "probe.add irradiance 0 1 0 3 1 3 3 2 3" --key enter --type "probe.add reflection 0 1 0 2 1 2" --key enter --expect-label "icon:Material Preview"
+probe_preview_baked | --key enter --type "probe.add irradiance 0 1 0 5 2 5 3 3 3" --key enter --type "probe.add reflection 0 1 0 5 2 5" --key enter --type "probe.bake 64" --key enter --type view.toggle_material_preview --key enter
+lightmap_bake | --key enter --type "lightmap.bake 64 4" --key enter --click-label tab:Render
+probe_bake_no_probes | --click-label tab:Render --move-label "button:Bake Probes" --wait 800
+ref_add | --move 615,360 --key kp1 --wait 400 --key enter --type "object.add_reference tests/files/reference.png" --key enter --key esc
+ref_props | --key enter --type "object.add_reference tests/files/reference.png" --key enter --key esc --expect-label "section:Reference image" --expect-label "button:Behind the scene" --expect-label "button:Both sides"
+ref_front | --key enter --type "object.add_reference tests/files/reference.png" --key enter --key esc --click-label "button:Behind the scene" --click-label "menuitem:In front of it"
+ref_wire | --key enter --type "object.add_reference tests/files/reference.png" --key enter --type view.shading_wireframe --key enter --key esc
+ref_material | --key enter --type "object.add_reference tests/files/reference.png" --key enter --type view.toggle_material_preview --key enter --key esc
+ref_rendered | --key enter --type "view.rendered_samples 4" --key enter --type "object.add_reference tests/files/reference.png" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+ref_bad_file | --key enter --type "object.add_reference /tmp/beemodel-headless/no-such.png" --key enter
+scene_frames | --click-label tab:Scene --expect-label "number:Start frame"
+anim_range_timeline | --key enter --type "anim.range 20 80 30" --key enter --type "area.type_timeline" --key enter
+menu_ref_add | --click-label menu:Add --click-label "menuitem:Reference Image..." --expect-label "button:Open"
+menu_refs_add | --click-label menu:Add --click-label "menuitem:Reference Images from Folder..." --expect-label "button:Open"
+menu_render_anim | --click-label menu:Render --click-label "menuitem:Render Animation..." --expect-label "button:Save"
+ref_pick | --move 615,360 --key kp1 --wait 400 --key enter --type "object.add_reference tests/files/reference.png" --key enter --key esc --click 300,610 --click 300,200 --expect-label "section:Reference image"
+tex_preview | --key enter --type "file.open tests/files/tex_uv.bee" --key enter --type "view.shading_material" --key enter --key esc --wait 50
+tex_render | --key enter --type "file.open tests/files/tex_uv.bee" --key enter --type "render.settings 64 36 4" --key enter --key esc --move 615,360 --key f12 --render-wait
+tex_tab | --key enter --type "file.open tests/files/tex_uv.bee" --key enter --key esc --click-label tab:Material --expect-label "button:Bake to Maps..." --expect-label "button:New Instance" --expect-label "button:Texture Set..."
+tex_instance | --key enter --type "file.open tests/files/tex_uv.bee" --key enter --type "material.node M scalarparam Wear 0.25" --key enter --type "material.instance M" --key enter --key esc --click-label tab:Material --expect-label "override:Wear"
+tex_bake | --key enter --type "file.open tests/files/tex_uv.bee" --key enter --type "image.new a 16 16" --key enter --type "object.bake Cube Cube ao a" --key enter --wait 10 --type "material.bake Cube 16 apply" --key enter --wait 10 --key esc --click-label tab:Material
+tex_preset_wood | --key enter --type "material.preset wood" --key enter --type "view.shading_material" --key enter --key esc --wait 50
+tex_set_none | --key enter --type "material.import_textures /tmp/beemodel-headless/nothing/set_albedo.png" --key enter --dump-ui /tmp/beemodel-headless/x.txt
+vgeo_build | --key enter --type "vgeo.build" --key enter --type "vgeo.view info" --key enter --key esc --expect-label "toast:Virtualized"
+vgeo_clusters | --key enter --type "add sphere" --key enter --type "object.modifier_add subsurf" --key enter --type 'object.modifier_set "0 levels 3"' --key enter --type "vgeo.build" --key enter --type "vgeo.view clusters" --key enter --key esc --move 615,360 --wheel 615,360,-6
+vgeo_wire | --key enter --type "add sphere" --key enter --type "object.modifier_add subsurf" --key enter --type "vgeo.build" --key enter --type view.shading_wireframe --key enter --key esc --move 615,360
+vgeo_material | --key enter --type "add sphere" --key enter --type "object.modifier_add subsurf" --key enter --type "vgeo.build" --key enter --type view.toggle_material_preview --key enter --key esc --move 615,360
+vgeo_rendered | --key enter --type "add sphere" --key enter --type "vgeo.build" --key enter --type "view.rendered_samples 4" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+vgeo_off | --key enter --type "add sphere" --key enter --type "vgeo.build" --key enter --type "vgeo.view off" --key enter --key esc
+vgeo_extract | --size 1280x1100 --key enter --type "add sphere" --key enter --type "object.modifier_add subsurf" --key enter --type 'object.modifier_set "0 levels 3"' --key enter --type "vgeo.build" --key enter --type "vgeo.extract 2" --key enter --key esc --expect-label "row:LOD"
+vgeo_proxy | --key enter --type "add sphere" --key enter --type "vgeo.build" --key enter --type "vgeo.proxy" --key enter --key esc
+vgeo_clear | --key enter --type "vgeo.build" --key enter --type "vgeo.clear" --key enter --key esc
+vgeo_panel | --click-label tab:Render --move 1100,500 --wheel 1100,500,-40 --expect-label "heading:Virtualized Geometry" --expect-label "button:Show Clusters"
+vgeo_no_dag | --click-label tab:Render --move 1100,500 --wheel 1100,500,-40 --move-label "button:Clear" --wait 800
+vgeo_chip | --key enter --type "add sphere" --key enter --type "object.modifier_add subsurf" --key enter --type 'object.modifier_set "0 levels 5"' --key enter --type "vgeo.build async" --key enter --key esc --move 615,360 --expect-label "chip:Virtualizing the mesh"
+vgeo_edit | --key enter --type "vgeo.build" --key enter --key esc --move 615,360 --key tab --key g --move 680,300 --click 680,300 --key tab
+gpu_device_row | --click-label tab:Render --expect-label "button:Auto" --expect-label "button:RTX" --expect-label "button:GPU" --click-label button:CPU --key enter --type "render.settings 160 90 4" --key enter --key esc --move 615,360 --key f12 --render-wait
+gpu_device_ops | --key enter --type "render.device gpu" --key enter --type "render.device bogus" --key enter --type "render.device" --key enter --type "render.settings 160 90 4" --key enter --key esc --move 615,360 --key f12 --render-wait
+gpu_rendered_motion | --key enter --type "view.rendered_motion 2" --key enter --type "view.rendered_samples 4" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait --mdrag 500,300,560,320 --live-wait
+gpu_rendered_playback | --key enter --type "view.rendered_playback 8" --key enter --type "view.rendered_playback bogus" --key enter --type "view.rendered_motion 99" --key enter --type "view.rendered_samples 4" --key enter --type view.shading_rendered --key enter --key esc --move 615,360 --live-wait
+gpu_render_no_mesh | --click 615,360 --key x --key enter --type "render.device rtx" --key enter --type "render.settings 160 90 4" --key enter --key esc --move 615,360 --key f12 --render-wait
+gpu_graph_render | --key enter --type "file.open tests/files/gpu_graph.bee" --key enter --type "render.settings 96 54 4" --key enter --key esc --move 615,360 --key f12 --render-wait
+gpu_dag_raster | --key enter --type "render.device" --key enter --type "add sphere" --key enter --type "object.modifier_add subsurf" --key enter --type "vgeo.build" --key enter --key esc --move 615,360 --mdrag 500,300,560,320
+gpu_box_uv | --key enter --type "file.open tests/files/gpu_subsurf.bee" --key enter --type "render.settings 96 54 4" --key enter --key esc --move 615,360 --key f12 --render-wait
+world_material_preview | --key enter --type view.shading_material --key enter --key esc --move 615,360 --key enter --type "image.new sky 64 32" --key enter --type "world.hdri sky" --key enter --key esc --move 615,360
+boolean_cycle | --key enter --type "add sphere" --key enter --type "move 0.7 1.5 0.4" --key enter --key esc --click-label row:Sphere --mods ctrl --click-label row:Cube --mods none --key enter --type "object.modifier_add boolean" --key enter --key esc --click-label row:Cube --mods ctrl --click-label row:Sphere --mods none --key enter --type "object.modifier_add boolean" --key enter --key esc --move 615,360
+# the UI shell (assert the effect: --expect-field, --expect-label, --expect-no-label, --expect-off, --expect-focused)
+field_menu_reset | --click-label number:0 --type 2.5 --key enter --expect-field Location=2.5 --rclick-label number:2.5 --expect-label "menuitem:Reset to Default" --expect-label "menuitem:Insert Keyframe" --click-label "menuitem:Reset to Default" --expect-no-label number:2.50 --expect-field Location=0
+field_menu_no_default | --rclick-label text:Cube --expect-off "Reset to Default" --expect-off "Copy Data Path" --key esc
+field_copy_paste_hover | --click-label number:0 --type 2.5 --key enter --move-label number:2.5 --key ctrl+c --move 1150,293 --key ctrl+v --expect-field Scale=2.5
+field_copy_data_path | --rclick-label number:0 --click-label "menuitem:Copy Data Path" --click-label text:Cube --key ctrl+a --key ctrl+v --key enter --expect-label text:Cube:x
+text_clipboard_in_app | --click-label text:Cube --type Box --key ctrl+a --key ctrl+c --key end --key ctrl+v --key enter --expect-label text:BoxBox
+text_cut_paste | --click-label text:Cube --type Box --key ctrl+a --key ctrl+x --type Z --key ctrl+v --key enter --expect-label text:ZBox
+text_copy_all_no_selection | --click-label text:Cube --type Ab --key home --key end --key ctrl+c --key ctrl+a --key delete --key ctrl+v --key enter --expect-label text:Ab
+focus_tab_ring | --move 1200,500 --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --expect-focused Material --key shift+tab --expect-focused Modifiers --key esc
+focus_enter_opens_tab | --move 1200,500 --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key enter --expect-label "number:Start frame"
+focus_number_arrow_steps | --move 1200,500 --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key tab --key right --expect-label number:0.20 --key left --key left --expect-label number:-0.20
+focus_not_over_viewport | --move 600,400 --key tab --expect-label "button:Edit Mode"
+ui_scale_hits_75 | --size 1000x640 --ui-scale 75 --click-label menu:File --expect-label "menuitem:Open..." --key esc
+ui_scale_hits_200 | --size 1000x640 --ui-scale 200 --click-label menu:Edit --expect-label menuitem:Undo --key esc
+fractional_scale_hits | --size 1000x640 --comp-scale 150 --ui-scale 125 --click-label editor:Outliner --expect-label menuitem:Help
+scale_viewport_pick | --size 1000x640 --comp-scale 180 --click 200,450 --expect-label "status:idle   |   3 objects  0 selected" --click 460,280 --expect-label "status:idle   |   3 objects  1 selected"
+welcome_templates | --key f3 --type Welcome --key enter --expect-label "button:Default Scene" --expect-label "button:Product (CAD)" --expect-label "button:Character" --expect-label "button:Terrain" --expect-label "button:L-system Tree" --expect-off "Bouncing Ball" --click-label "button:Empty Scene" --expect-label "button:Add a Cube" --expect-label "button:Start a Sketch..."
+welcome_quick_add | --key f3 --type Welcome --key enter --click-label "button:Empty Scene" --click-label "button:Add a Cube" --expect-label row:Cube
+welcome_keymap_blender | --key f3 --type Welcome --key enter --click-label "button:Keymap: BeeModel" --click-label "menuitem:Keymap: Blender 4.x" --expect-label "button:Keymap: Blender 4.x" --key esc
+form_opens_and_remembers | --key f3 --type "Frame Range" --key enter --expect-label "number:Start frame" --click-label "number:End frame" --type 100 --key enter --click-label button:OK --key f3 --type "Frame Range" --key enter --expect-field "End frame=100" --key esc
+form_values_run | --key f3 --type "Frame Range" --key enter --click-label "number:End frame" --type 90 --key enter --key enter --click-label tab:Scene --expect-field "End frame=90"
+form_cancel_runs_nothing | --key f3 --type "Frame Range" --key enter --click-label "number:End frame" --type 77 --key enter --key esc --click-label tab:Scene --expect-field "End frame=250"
+form_options_list | --move 615,360 --key tab --key f3 --type Spin --key enter --expect-label "button:Y" --click-label "button:Y" --click-label menuitem:Z --expect-label button:Z --click-label button:Cancel --key tab
+console_never_a_form | --key enter --type "anim.range" --key enter --expect-no-label "number:Start frame" --key esc
+keymap_blender_keys | --key ctrl+comma --click-label button:Keymap --click-label text:Find --type "Wireframe" --key enter --expect-label key:Z --key esc --key enter --type "prefs.keymap blender" --key enter --key esc --key ctrl+comma --expect-label key:Shift+Z --click-label "button:Reset All Keys" --expect-label key:Z --expect-no-label key:Shift+Z --key esc
+keymap_set_conflict | --key ctrl+comma --click-label button:Keymap --click-label text:Find --type "Undo" --key enter --click-label button:Set --key ctrl+z --expect-label "toast:" --key esc
+keymap_set_and_clear | --key ctrl+comma --click-label button:Keymap --click-label text:Find --type "Undo History" --key enter --click-label button:Set --key f8 --key esc --key f8 --expect-label step:
+prefs_pages | --key ctrl+comma --click-label button:Rendering --expect-label "number:Width (px)" --click-label button:System --expect-off "Compile node programs to machine code (JIT)" --click-label button:Files --expect-label "number:Autosave every N changes (0: never)" --expect-off "Add Library Folder..."
+prefs_render_new_scene | --key ctrl+comma --click-label button:Rendering --click-label "number:Width (px)" --type 640 --key enter --key esc --key ctrl+n --click-label tab:Render --expect-field Width=640
+prefs_area | --click-label "editor:3D Viewport" --click-label menuitem:Preferences --expect-label button:Rendering --click-label button:Rendering --expect-label "number:Height (px)"
+help_area_notes | --click-label editor:Console --click-label menuitem:Help --click-label menu:Edit --move-label menuitem:Undo --wait 800 --key esc --expect-label help:Undo
+folder_new_ctrl_g | --move 615,360 --click 615,400 --key ctrl+g --expect-label folder:Folder --expect-label row:Cube
+folder_eye_hides | --move 615,360 --key ctrl+g --expect-label "status:idle   |   3 objects  1 selected" --click-label "toggle:Folder Eye" --expect-label "status:idle   |   3 objects  0 selected"
+folder_fold_hides_rows | --move 615,360 --key ctrl+g --expect-label row:Cube --click-label fold:Folder --expect-label folder:Folder --expect-label row:Camera --expect-no-label row:Cube
+folder_saved_in_bee | --move 615,360 --key ctrl+g --key enter --type "file.save /tmp/beemodel-ui-f.bee" --key enter --type "file.open /tmp/beemodel-ui-f.bee" --key enter --key esc --expect-label folder:Folder
+folder_delete_contents_up | --move 615,360 --key ctrl+g --click-label folder:Folder --key enter --type "outliner.folder_delete" --key enter --key esc --expect-no-label folder:Folder --expect-label row:Cube
+form_text_move_to_folder | --click 615,400 --key f3 --type "Move to Folder" --key enter --click-label text:none --type Props --key enter --click-label button:OK --expect-label folder:Props --expect-label row:Cube
+keymap_set_forgotten_on_close | --key ctrl+comma --click-label button:Keymap --click-label button:Set --click-label button:Close --key ctrl+comma --expect-label button:Rendering --key esc
+open_new_window_needs_a_window |--click-label editor:Tools --key esc --rclick 40,68 --expect-off "Open in New Window" --key esc
+undo_stops_at_open |--key enter --type "add sphere" --key enter --type "file.save /tmp/beemodel-undo.bee" --key enter --type "file.new" --key enter --key esc --move 615,360 --key ctrl+z
+add_cone_torus_grid | --op create.cone --expect-faces 39 --op create.torus --expect-faces 615 --op create.grid --expect-faces 715 --expect-objects 6
+add_ground_fading_grid | --op create.ground --expect-objects 4 --expect-faces 406 --op create.ground --expect-objects 4
+redo_panel_inset | --move 615,360 --key tab --op mesh.select_mode_face --op "mesh.inset 0.1" --expect-faces 30 --expect-label "redo:Thickness 0.1" --op "edit.redo_last 0.3" --expect-label "redo:Thickness 0.3" --expect-faces 30
+redo_panel_undo_one_step | --move 615,360 --key tab --op mesh.select_mode_face --op "mesh.inset 0.1" --op "edit.redo_last 0.3" --op "edit.redo_last 0.05" --key ctrl+z --expect-faces 6 --expect-no-label "redo:Thickness"
+overlay_mesh_checks | --op view.show_normals --op view.show_boundary --op view.show_nonmanifold --op view.show_degenerate --expect-label "analysis:0 0 0 0 1"
+overlay_menu_ticks | --op view.show_boundary --click-label icon:Overlays --expect-label "menuitem:Show Boundary Edges"
+export_options_strip | --op file.export_obj --expect-label "checkbox:Selected objects only" --expect-label button:Z
+workspace_named_and_set | --op "workspace.new Mine" --expect-label button:Mine --op "workspace.set Sculpt" --expect-label button:Sculpt
+# the animation: each asserts what it did (--expect-anim, animtest.zig); see tests/anim.py for the numbers
+anim_key_i | --move 615,360 --key i --expect-anim curves=9 --expect-anim keys=9 --key alt+i --expect-anim curves=0 --key ctrl+z --expect-anim keys=9 --key ctrl+z --expect-anim keys=0
+anim_key_edit_mode_no | --move 615,360 --key tab --key i --expect-anim keys=0
+anim_key_nothing_selected | --click-label row:Cube --mods ctrl --click-label row:Cube --mods none --op "object.select_all none"
+anim_autokey | --op anim.auto_key --expect-anim autokey=1 --op "anim.frame 10" --move 615,360 --key g --key x --type 2 --key enter --expect-anim keys=9 --expect-anim Cube:x=2 --expect-anim undo=2 --key ctrl+z --expect-anim keys=0 --expect-anim Cube:x=2 --key ctrl+z --expect-anim Cube:x=0
+anim_step_keys | --move 615,360 --key right --expect-anim frame=2 --key right --key left --expect-anim frame=2 --key shift+right --expect-anim frame=250 --key shift+left --expect-anim frame=1
+anim_space_plays | --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 25 24 linear" --op "anim.interpolation linear" --move 615,360 --key space --expect-anim playing=1 --wait 500 --expect-anim frame=13 --expect-anim Cube:x=12 --expect-anim undo=3 --wait 500 --expect-anim Cube:x=24 --key space --expect-anim playing=0 --wait 1000 --expect-anim frame=25
+anim_play_loops | --op "anim.range 1 10 10" --move 615,360 --key space --wait 1000 --expect-anim frame=1 --wait 500 --expect-anim frame=6
+anim_frame_fraction | --op "anim.key Cube:x 1 0 linear" --op "anim.key Cube:x 3 2 linear" --op "anim.frame 2.5" --expect-anim frame=2.5 --expect-anim Cube:x=1.5
+anim_bad_paths | --op "anim.key Nothing:x 1 2" --op "anim.key Cube:nope" --op "anim.key material:None:roughness" --op "anim.key modifier:Cube:7:levels" --op "anim.key shape:Cube:Nope" --op "anim.key bone:Rig:Arm:rz" --op "anim.key node:Tree:1:4" --op "anim.key param:angle" --op "anim.key nan nan" --op "anim.key Cube:x nan inf" --op "anim.unkey Cube:x" --expect-anim curves=0 --expect-anim undo=2
+anim_ops_nothing | --op "anim.move_keys 3" --op anim.delete_keys --op "anim.duplicate_keys 2" --op "anim.scale_keys 2" --op "anim.select_keys all" --op "anim.handle Cube:x 1 left 1 1" --op "anim.layer Nope" --op "anim.layer_set 1 mute 1" --op "anim.layer_remove 1" --op "anim.driver_set 1 mute 1" --op "anim.driver_remove Cube:x" --op "anim.action A" --expect-anim undo=0
+anim_ds_click_shift | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --op "anim.key Cube:y 90 3" --click 356,578 --expect-anim selected=1 --mods shift --click 261,596 --mods none --expect-anim selected=2 --click 700,640 --expect-anim selected=0
+anim_ds_drag_move | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --op "anim.key Cube:y 90 3" --drag 356,578,386,578 --expect-anim keys=4 --expect-anim int:Cube:x:70=2 --expect-anim int:Cube:x:60=nil --expect-anim undo=5 --key ctrl+z --expect-anim int:Cube:x:60=2
+anim_ds_box | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --op "anim.key Cube:y 90 3" --drag 230,572,470,604 --expect-anim selected=3 --click 700,640 --expect-anim selected=0
+anim_ds_keys | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --op "anim.key Cube:y 90 3" --move 600,620 --key a --expect-anim selected=4 --key shift+d --expect-anim keys=8 --expect-anim selected=4 --key a --expect-anim selected=0 --key a --key x --expect-anim keys=0 --key ctrl+z --expect-anim keys=8
+anim_keys_not_elsewhere | --op "anim.key Cube:x 1 0" --move 615,360 --key x --expect-objects 2 --expect-anim keys=1
+anim_ds_scrub | --click-label button:Animation --drag 200,540,400,540 --expect-anim frame=74
+anim_ds_header | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --click-label button:Constant --expect-anim int:Cube:x:1=0 --expect-anim undo=3 --click-label button:Linear --expect-anim int:Cube:x:1=1 --click-label button:Bezier --expect-anim int:Cube:x:1=2 --click 356,578 --click-label button:Delete --expect-anim keys=1 --key ctrl+z --click-label button:Duplicate --expect-anim keys=3
+anim_ds_menu | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --rclick 600,640 --click-label menuitem:Linear --expect-anim int:Cube:x:1=1 --rclick 600,640 --click-label "menuitem:Select All Keys" --expect-anim selected=2 --rclick 600,640 --click-label "menuitem:Free Handles" --op "anim.key Cube:x 200 1" --expect-anim handle:Cube:x:60=0 --rclick 600,640 --click-label "menuitem:Duplicate Keys" --expect-anim keys=5
+anim_ge_select_box | --click-label button:Animation --op area.type_graph_editor --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --click 264,156 --expect-anim selected=1 --click 600,300 --expect-anim selected=0 --drag 40,140,300,470 --expect-anim selected=3
+anim_ge_handle | --click-label button:Animation --op area.type_graph_editor --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --click 264,156 --drag 193,156,193,200 --expect-anim handleL:Cube:x:60=-19.568 --expect-anim handleLy:Cube:x:60=-0.5977 --expect-anim ht:Cube:x:60=1 --expect-anim undo=4 --key ctrl+z --expect-anim ht:Cube:x:60=0
+anim_ge_move | --click-label button:Animation --op area.type_graph_editor --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --drag 50,455,80,400 --expect-anim int:Cube:x:9=2 --expect-anim value:Cube:x:9=0.742 --expect-anim int:Cube:x:1=nil
+anim_ge_menu_keys | --click-label button:Animation --op area.type_graph_editor --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --move 700,300 --key a --expect-anim selected=2 --rclick 700,300 --click-label menuitem:Constant --expect-anim int:Cube:x:1=0 --key x --expect-anim keys=0
+anim_ge_shown | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 60 4" --op "anim.key Cube:y 30 1" --click-label "editor:Dope Sheet" --click-label "menuitem:Graph Editor" --expect-label "button:Constant" --expect-label "editor:Graph Editor"
+anim_tl_scrub | --click-label button:Animation --click 400,760 --expect-anim frame=99 --drag 400,760,180,760 --expect-anim frame=38
+anim_tl_header | --click-label button:Animation --click-label "icon:Last Frame" --expect-anim frame=250 --click-label "icon:First Frame" --expect-anim frame=1 --click-label "icon:Next Frame" --expect-anim frame=2 --click-label "icon:Previous Frame" --expect-anim frame=1 --click-label "icon:Auto-Key" --expect-anim autokey=1 --click-label "icon:Play Animation" --expect-anim playing=1 --click-label "icon:Play Animation" --expect-anim playing=0 --click-label number:Frame --type 33 --key enter --expect-anim frame=33
+anim_tl_menu | --click-label button:Animation --op "anim.frame 40" --rclick 400,760 --click-label "menuitem:Start at This Frame" --expect-field Start=40 --rclick 400,760 --click-label "menuitem:Insert Keyframe" --expect-anim keys=9
+anim_tl_range_fields | --click-label button:Animation --click-label number:End --type 90 --key enter --expect-field End=90 --key ctrl+z --expect-field End=250
+anim_workspace | --click-label button:Animation --expect-label "editor:Dope Sheet" --expect-label "editor:Timeline" --expect-label "editor:Properties" --expect-label "button:Add Shape Key..." --expect-label "section:Onion Skins and Motion Paths"
+anim_tab_shape | --click-label button:Animation --click-label "button:Add Shape Key..." --click-label text:Key --type Smile --key enter --key enter --expect-anim shapes:Cube=2 --expect-label "slider:" --key ctrl+z --expect-anim shapes:Cube=0
+anim_tab_action_layer | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 9 2" --click-label "button:New Action..." --key enter --expect-anim actions=1 --click-label "button:Add Layer..." --key enter --expect-anim layers=1 --click-label "checkbox:Mute" --key ctrl+z --expect-anim layers=1
+anim_tab_onion_paths | --click-label button:Animation --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 30 5" --click-label "checkbox:Onion skins" --expect-anim ghosts=4 --op "anim.frame 9" --expect-anim ghosts=4 --click-label "button:Motion Paths" --expect-anim paths=1 --click-label "button:Clear Paths" --expect-anim paths=0 --click-label "checkbox:Onion skins" --expect-anim ghosts=0
+anim_field_i | --click-label tab:Object --move 1160,250 --key i --expect-anim keys=1 --expect-anim curves=1 --expect-anim int:Cube:x:1=2
+anim_field_menu | --click-label tab:Object --rclick 1205,250 --click-label "menuitem:Insert Keyframe" --expect-anim keys=1 --expect-anim int:Cube:y:1=2
+anim_field_text_no_key | --click-label tab:Object --rclick 1100,224 --expect-off "Insert Keyframe"
+anim_dope_in_file | --op area.type_dope_sheet --op "file.save /tmp/beemodel-headless/ds.bee" --op area.type_console --op "file.open /tmp/beemodel-headless/ds.bee" --expect-label "editor:Dope Sheet"
+
+# the rig: each asserts what it did; see tests/rig.py for the numbers
+rig_armature_add | --op create.armature --expect-objects 4 --expect-anim bones:Armature=1 --move 615,360 --key tab --expect-anim arm_mode=1 --key a --expect-anim bonesel:Armature=1 --key tab --expect-anim arm_mode=0
+rig_extrude_delete | --op create.armature --move 615,360 --key tab --key a --key e --key enter --expect-anim bones:Armature=2 --key a --key a --key x --expect-anim bones:Armature=2 --key ctrl+z --expect-anim bones:Armature=1
+rig_pose_key | --op create.armature --move 615,360 --key ctrl+tab --expect-anim arm_mode=2 --key a --key i --expect-anim curves=9 --expect-anim keys=9 --key ctrl+tab --expect-anim arm_mode=0
+rig_template | --op "help.template character" --expect-objects 4 --expect-anim bones:Rig=2 --expect-anim weights:Body=64 --select Rig --click-label tab:Rig --expect-label "row:Spine" --expect-label "button:Add Constraint..."
+rig_tab_mesh | --select Cube --click-label tab:Rig --expect-label "button:Parent to Armature..." --expect-label "button:Add Constraint..."
+rig_constraint_list | --op "constraint.add Cube copy_location Light" --expect-anim constraints=1 --op "constraint.remove 1" --expect-anim constraints=0
+rig_modifier | --select Cube --op object.modifier_add_armature --click-label tab:Modifiers --expect-label "button:Linear blend" --expect-label "button:Dual quaternion"
+rig_tools | --op create.armature --move 615,360 --key tab --expect-label "button:Extrude Bone"
+sculpt_mode | --op mode.sculpt --move 640,420 --expect-label "button:Clay Strips" --expect-label "button:Dynamic Topology" --expect-label "icon:X Symmetry"
+sculpt_stroke | --op "add sphere" --op "object.sculpt_mode" --drag 600,320,640,350 --op sculpt.info --key 31 --drag 600,320,640,350 --key ctrl+z
+sculpt_dyntopo | --op "add sphere" --op "object.sculpt_mode" --key ctrl+d --key ctrl+26 --drag 600,320,640,350 --expect-label "number:Detail" --key ctrl+z
+multires_tab | --op "add sphere" --op "object.modifier_add multires" --click-label tab:Modifiers --click-label button:Subdivide --expect-label "button:Propagate" --expect-label "number:Levels"
+multires_stroke | --op "add sphere" --op "object.modifier_add multires" --op "object.sculpt_mode" --drag 600,320,640,350 --op multires.propagate_down --key ctrl+z
+sculpt_mask | --op "sculpt Cube mask 0 1 1 0.3 1 1 0.8 1" --move 640,420
+sculpt_material_preview | --op view.shading_material --op "sculpt Cube draw 0 1 1 0.3 1 1 0.8 1" --move 640,420
+uv_editor_empty | --move 600,300 --op area.type_uv_editor --expect-label "button:Fit"
+uv_editor_layout | --move 600,300 --op area.type_uv_editor --op mode.edit --op uv.seams_from_sharp --op uv.unwrap --move 615,360 --key a
+uv_editor_heat | --move 600,300 --op create.sphere --op area.type_uv_editor --op mode.edit --op uv.smart_project --move 615,360 --key d
+uv_seams_edit | --op uv.seams_from_sharp --move 600,300 --key tab
+bake_form | --op "image.new Bake 32 32" --click-label menu:Render --click-label "menuitem:Bake Maps" --expect-label "button:Normal map"
+# M1: the dialogs, prompts, forms and redo panel drawn by Zui (Docs/beezigui-migration.html)
+about_ok_closes | --op help.about --expect-label "dialog:About BeeModel" --click-label button:OK --expect-no-label "dialog:About BeeModel"
+about_click_outside_closes | --op help.about --click 30,700 --expect-no-label "dialog:About BeeModel"
+shortcuts_type_redo_escape | --op help.shortcuts --type "redo" --expect-label "shortcut:Redo" --expect-no-label "shortcut:Undo Stroke" --key esc --expect-no-label "dialog:Keyboard Shortcuts"
+history_click_step | --op "anim.key Cube:x 1 0" --op "anim.key Cube:x 3 1" --op edit.undo_history --click-label "step:Original" --expect-anim keys=0 --click-label button:OK --expect-no-label "dialog:Undo History"
+save_changes_escape_stays | --op "anim.key Cube:x 1 0" --key ctrl+n --expect-label "dialog:Save changes to this scene?" --key esc --expect-no-label "dialog:Save changes to this scene?" --expect-anim keys=1
+save_changes_dont_save | --op "anim.key Cube:x 1 0" --key ctrl+n --click-label "button:Don't Save" --expect-no-label "dialog:Save changes to this scene?" --expect-anim keys=0
+form_enter_in_field_keeps_it | --key f3 --type "Frame Range" --key enter --click-label "number:End frame" --type 90 --key enter --expect-label "dialog:Frame Range" --key enter --expect-no-label "dialog:Frame Range"
+prefs_area_widgets | --move 100,300 --op area.type_preferences --expect-label "text:Search settings" --click-label button:Viewport --expect-label "number:Field of view"
+prefs_area_menu_over_it | --move 100,300 --op area.type_preferences --click-label menu:Edit --expect-label "menuitem:Preferences..." --click-label menuitem:Preferences... --expect-label "button:Close"
+redo_panel_type_value | --move 615,360 --key tab --op mesh.select_mode_face --op "mesh.inset 0.1" --click-label "number:Thickness" --type 0.3 --key enter --expect-label "redo:Thickness 0.3" --expect-faces 30

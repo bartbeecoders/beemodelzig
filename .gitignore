@@ -1,0 +1,41 @@
+# Zig build output and caches (any folder, including examples)
+.zig-cache/
+zig-cache/
+zig-out/
+zig-out-*/
+# Fetched packages (zig build re-fetches them from build.zig.zon)
+zig-pkg/
+
+# Python
+__pycache__/
+*.pyc
+
+# Rendered frames and screenshots
+*.ppm
+BeeZigUi/shots/
+BeeZigUi/gl_check/
+
+# Stray files the tests leave in Beemodel/ when run from there
+/Beemodel/.gltf-scratch/
+/Beemodel/subsurf
+/Beemodel/subsurf_*.obj
+/Beemodel/Material
+/Beemodel/1
+/Beemodel/-3.5
+/Beemodel/999999
+/Beemodel/nan
+/Beemodel/x y z
+
+# Secrets and local settings
+.env
+.env.*
+*.pem
+*.key
+.claude/settings.local.json
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

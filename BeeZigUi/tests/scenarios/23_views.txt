@@ -1,0 +1,22 @@
+# 2D views: scrub the playhead, drag a key (snapped to frames), box
+# select and move the selection together, zoom the image and fit it.
+click playhead:playhead
+expect playhead:playhead = 63
+drag handle:key 1 by 82 0
+expect handle:key 1 = 11.000 0.000
+drag view:timeline by -300 -60
+drag handle:key 3 by 41 0
+expect handle:key 3 = 54.000 0.000
+expect handle:key 6 = 36.000 1.000
+expect handle:key 1 = 11.000 0.000
+drag handle:range end by -82 0
+expect handle:range end = 110
+drag handle:point 2 by 0 -48
+expect handle:point 2 = 21.000 3.002
+scroll view:image 3
+expect view:image = 3.05 x 3.05
+expect minimap:minimap exists
+shot zig-out/scenarios/23_views.png
+key home
+expect view:image = 1.77 x 1.77
+expect minimap:minimap missing
