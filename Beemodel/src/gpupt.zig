@@ -238,6 +238,30 @@ fn collapse() ?[]N4 {
 
 // --- into a slot ----------------------------------------------------------------------------------
 
+/// Blocks lo .. hi of a binding into the slot; with marks, only those that
+/// differ, each marked.
+const CopyJob = struct {
+    dst: []u8,
+    src: []const u8,
+    marks: []u8,
+    fn run(ctx: *anyopaque, lo: usize, hi: usize, _: usize) void {
+        const j: *const CopyJob = @ptrCast(@alignCast(ctx));
+        if (j.marks.len == 0) {
+            const a = lo * BLK;
+            const e = @min(hi * BLK, j.src.len);
+            @memcpy(j.dst[a..e], j.src[a..e]);
+            return;
+        }
+        for (lo..hi) |bi| {
+            const o = bi * BLK;
+            const n = @min(BLK, j.src.len - o);
+            const same = std.mem.eql(u8, j.dst[o..][0..n], j.src[o..][0..n]);
+            j.marks[bi] = @intFromBool(!same);
+            if (!same) @memcpy(j.dst[o..][0..n], j.src[o..][0..n]);
+        }
+    }
+};
+
 const Put = struct {
     u: *Up,
     base: [*]u8,
@@ -247,6 +271,8 @@ const Put = struct {
     sent: u64 = 0,
 
     /// Binding b's bytes: when the device holds the layout, only what differs goes.
+    /// The copy (and the look for what differs) runs on every thread: a scene
+    /// of a million triangles is some 200 MB.
     fn put(p: *Put, b: usize, src: []const u8) void {
         const t = &p.tab[b];
         const off = p.u.off[b];
@@ -254,20 +280,24 @@ const Put = struct {
         t.flags = ipc.GBF_IN;
         t.r0 = 0;
         t.rn = 0;
-        if (!p.delta) {
-            @memcpy(dst, src);
+        const nblk = (src.len + BLK - 1) / BLK;
+        // (no memory for the marks: all of it goes)
+        const marks: []u8 = if (p.delta) A.alloc(u8, nblk) catch &.{} else &.{};
+        defer if (marks.len > 0) A.free(marks);
+        var job = CopyJob{ .dst = dst, .src = src, .marks = marks };
+        jobs.parallelFor(nblk, 64, &job, CopyJob.run);
+        if (!p.delta or (nblk > 0 and marks.len == 0)) {
             p.sent += src.len;
             return;
         }
         const first = p.nr;
-        var o: u64 = 0;
         var start: ?u64 = null;
         var last: u64 = 0;
         var whole = false;
-        while (o < src.len) : (o += BLK) {
+        for (marks, 0..) |mk, bi| {
+            if (mk == 0) continue;
+            const o: u64 = bi * BLK;
             const n = @min(BLK, src.len - o);
-            if (std.mem.eql(u8, dst[o..][0..n], src[o..][0..n])) continue;
-            @memcpy(dst[o..][0..n], src[o..][0..n]);
             if (start != null and o - last <= GAP) {
                 last = o + n;
                 continue;

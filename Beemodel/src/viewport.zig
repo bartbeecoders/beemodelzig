@@ -33,6 +33,9 @@ pub const View = struct {
     rendered: bool = false,
     /// Orthographic: a very long lens from far away, as in the original.
     ortho: bool = false,
+    /// Orthographic because an axis view was asked for (Numpad 1 / 3 / 7, the
+    /// gizmo's balls): orbiting away goes back to perspective.
+    auto_ortho: bool = false,
     /// Looking through the scene's camera.
     cam_view: bool = false,
     /// The view before Camera View (Numpad 0 again goes back to it).

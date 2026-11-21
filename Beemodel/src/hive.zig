@@ -12,6 +12,7 @@ const material = @import("material.zig");
 const preview = @import("preview.zig");
 const bake = @import("bake.zig");
 const gops = @import("graphops.zig");
+const jobs = @import("jobs.zig");
 const A = std.heap.page_allocator;
 
 pub const Tri = extern struct {
@@ -248,42 +249,189 @@ var tbox: []Box = &.{};
 var cent: []m.V3 = &.{};
 var order: []u32 = &.{};
 
-/// The object-space triangles and UVs in leaf order too.
-fn permuteTex() bool {
-    const n = tris.len;
-    const a = A.alloc(Tri, n) catch return false;
-    const b = A.alloc([6]f32, n) catch {
-        A.free(a);
-        return false;
-    };
-    const c = A.alloc([3]u32, n) catch {
-        A.free(a);
-        A.free(b);
-        return false;
-    };
-    for (order, 0..) |o, i| {
-        a[i] = obj_tris[o];
-        b[i] = tuv[o];
-        c[i] = tvc[o];
-    }
-    A.free(obj_tris);
-    A.free(tuv);
-    A.free(tvc);
-    obj_tris = a;
-    tuv = b;
-    tvc = c;
-    return true;
+const Task = struct { node: u32, first: u32, count: u32 };
+/// A node of this many triangles or more: its boxes and bins on every thread.
+const PAR_NODE = 1 << 15;
+/// A subtree of this many or fewer: built whole by one thread.
+const SUB_MAX = 1 << 15;
+
+const Bins = struct {
+    bb: Box = .{},
+    cb: Box = .{},
+    box: [3][BINS]Box = @splat(@splat(.{})),
+    cnt: [3][BINS]u32 = @splat(@splat(0)),
+};
+
+inline fn binOf(ti: u32, ax: usize, lo: f32, k: f32) usize {
+    return @min(BINS - 1, @as(usize, @intFromFloat(@max(0, (cent[ti][ax] - lo) * k))));
 }
 
-fn buildBvh() bool {
-    const n = tris.len;
-    tbox = A.alloc(Box, n) catch return fail();
-    defer A.free(tbox);
-    cent = A.alloc(m.V3, n) catch return fail();
-    defer A.free(cent);
-    order = A.alloc(u32, n) catch return fail();
-    defer A.free(order);
-    for (tris, 0..) |t, i| {
+fn growBounds(ids: []const u32, bn: *Bins) void {
+    for (ids) |ti| {
+        bn.bb.merge(tbox[ti]);
+        bn.cb.grow(cent[ti]);
+    }
+}
+
+/// The triangles into each axis's bins (an axis the centroids do not span: none).
+fn fillBins(ids: []const u32, cb: *const Box, bn: *Bins) void {
+    for (0..3) |ax| {
+        const ext = cb.hi[ax] - cb.lo[ax];
+        if (!(ext > 1e-12)) continue;
+        const k = @as(f32, BINS) / ext;
+        for (ids) |ti| {
+            const bi = binOf(ti, ax, cb.lo[ax], k);
+            bn.box[ax][bi].merge(tbox[ti]);
+            bn.cnt[ax][bi] += 1;
+        }
+    }
+}
+
+/// A big node's passes on every thread: each thread's own sums, merged after
+/// (boxes and counts: the same whatever the order).
+const Par = struct {
+    ids: []const u32,
+    cb: Box = .{},
+    per: []Bins,
+    fn boundsJob(ctx: *anyopaque, lo: usize, hi: usize, th: usize) void {
+        const j: *const Par = @ptrCast(@alignCast(ctx));
+        growBounds(j.ids[lo..hi], &j.per[th]);
+    }
+    fn binsJob(ctx: *anyopaque, lo: usize, hi: usize, th: usize) void {
+        const j: *const Par = @ptrCast(@alignCast(ctx));
+        fillBins(j.ids[lo..hi], &j.cb, &j.per[th]);
+    }
+};
+var par_bins: []Bins = &.{};
+
+/// One node: its box, then a leaf or its split, the children at nodes l and
+/// l + 1. The left child's triangles (0: a leaf).
+fn splitNode(tk: Task, l: u32) u32 {
+    const ids = order[tk.first..][0..tk.count];
+    var bn = Bins{};
+    const par = tk.count >= PAR_NODE and par_bins.len > 1;
+    if (par) {
+        var j = Par{ .ids = ids, .per = par_bins };
+        for (par_bins) |*p| p.* = .{};
+        jobs.parallelFor(ids.len, 8192, &j, Par.boundsJob);
+        for (par_bins) |*p| {
+            bn.bb.merge(p.bb);
+            bn.cb.merge(p.cb);
+        }
+    } else growBounds(ids, &bn);
+    const cb = bn.cb;
+    const nd = &nodes[tk.node];
+    nd.lo = bn.bb.lo;
+    nd.hi = bn.bb.hi;
+    if (tk.count <= LEAF_MAX) {
+        nd.index = tk.first;
+        nd.count = tk.count;
+        return 0;
+    }
+    if (par) {
+        var j = Par{ .ids = ids, .cb = cb, .per = par_bins };
+        for (par_bins) |*p| p.* = .{};
+        jobs.parallelFor(ids.len, 8192, &j, Par.binsJob);
+        for (par_bins) |*p| {
+            for (0..3) |ax| {
+                for (0..BINS) |i| {
+                    bn.box[ax][i].merge(p.box[ax][i]);
+                    bn.cnt[ax][i] += p.cnt[ax][i];
+                }
+            }
+        }
+    } else fillBins(ids, &cb, &bn);
+    // the best split: binned SAH on the longest centroid axis... on all three
+    var best_cost = std.math.inf(f32);
+    var best_axis: usize = 0;
+    var best_bin: usize = 0;
+    for (0..3) |ax| {
+        const ext = cb.hi[ax] - cb.lo[ax];
+        if (!(ext > 1e-12)) continue;
+        const bins = &bn.box[ax];
+        const cnt = &bn.cnt[ax];
+        var la: [BINS - 1]f32 = undefined;
+        var lc: [BINS - 1]u32 = undefined;
+        var acc = Box{};
+        var c: u32 = 0;
+        for (0..BINS - 1) |i| {
+            acc.merge(bins[i]);
+            c += cnt[i];
+            la[i] = acc.area();
+            lc[i] = c;
+        }
+        acc = .{};
+        c = 0;
+        var i: usize = BINS - 1;
+        while (i > 0) : (i -= 1) {
+            acc.merge(bins[i]);
+            c += cnt[i];
+            const cost = la[i - 1] * @as(f32, @floatFromInt(lc[i - 1])) + acc.area() * @as(f32, @floatFromInt(c));
+            if (lc[i - 1] > 0 and c > 0 and cost < best_cost) {
+                best_cost = cost;
+                best_axis = ax;
+                best_bin = i;
+            }
+        }
+    }
+    var mid: u32 = 0;
+    if (best_cost < std.math.inf(f32)) {
+        const ax = best_axis;
+        const k = @as(f32, BINS) / (cb.hi[ax] - cb.lo[ax]);
+        var lo: u32 = tk.first;
+        var hi: u32 = tk.first + tk.count;
+        while (lo < hi) {
+            const ti = order[lo];
+            if (binOf(ti, ax, cb.lo[ax], k) < best_bin) lo += 1 else {
+                hi -= 1;
+                std.mem.swap(u32, &order[lo], &order[hi]);
+            }
+        }
+        mid = lo - tk.first;
+    }
+    if (mid == 0 or mid == tk.count) {
+        // all centroids together: a leaf if small, else halves
+        if (tk.count <= 16) {
+            nd.index = tk.first;
+            nd.count = tk.count;
+            return 0;
+        }
+        mid = tk.count / 2;
+    }
+    nd.index = l; // the first child; the second follows it
+    nd.count = 0;
+    return mid;
+}
+
+/// A small subtree, whole, in its own run of nodes (2 count - 2 at most).
+const Sub = struct { task: Task, base: u32 };
+
+fn subJob(ctx: *anyopaque, lo: usize, hi: usize, _: usize) void {
+    const subs: *const []const Sub = @ptrCast(@alignCast(ctx));
+    for (subs.*[lo..hi]) |sb| {
+        var next = sb.base;
+        // (the larger half waits, the smaller goes first: the stack stays short)
+        var stack: [64]Task = undefined;
+        var sp: usize = 1;
+        stack[0] = sb.task;
+        while (sp > 0) {
+            sp -= 1;
+            const tk = stack[sp];
+            const mid = splitNode(tk, next);
+            if (mid == 0) continue;
+            const a = Task{ .node = next, .first = tk.first, .count = mid };
+            const b = Task{ .node = next + 1, .first = tk.first + mid, .count = tk.count - mid };
+            next += 2;
+            stack[sp] = if (a.count >= b.count) a else b;
+            stack[sp + 1] = if (a.count >= b.count) b else a;
+            sp += 2;
+        }
+    }
+}
+
+fn boxJob(_: *anyopaque, lo: usize, hi: usize, _: usize) void {
+    for (lo..hi) |i| {
+        const t = tris[i];
         var b = Box{};
         b.grow(t.v0);
         b.grow(m.add(t.v0, t.e1));
@@ -292,126 +440,106 @@ fn buildBvh() bool {
         cent[i] = m.scale(m.add(b.lo, b.hi), 0.5);
         order[i] = @intCast(i);
     }
+}
+
+/// Everything per triangle, in leaf order.
+const Sorted = struct {
+    tris: []Tri = &.{},
+    norms: [][3]m.V3 = &.{},
+    mats: []u16 = &.{},
+    obj_tris: []Tri = &.{},
+    tuv: [][6]f32 = &.{},
+    tvc: [][3]u32 = &.{},
+    fn alloc(n: usize) ?Sorted {
+        var s = Sorted{};
+        s.tris = A.alloc(Tri, n) catch return s.drop();
+        s.norms = A.alloc([3]m.V3, n) catch return s.drop();
+        s.mats = A.alloc(u16, n) catch return s.drop();
+        s.obj_tris = A.alloc(Tri, n) catch return s.drop();
+        s.tuv = A.alloc([6]f32, n) catch return s.drop();
+        s.tvc = A.alloc([3]u32, n) catch return s.drop();
+        return s;
+    }
+    fn drop(s: *Sorted) ?Sorted {
+        if (s.tris.len > 0) A.free(s.tris);
+        if (s.norms.len > 0) A.free(s.norms);
+        if (s.mats.len > 0) A.free(s.mats);
+        if (s.obj_tris.len > 0) A.free(s.obj_tris);
+        if (s.tuv.len > 0) A.free(s.tuv);
+        if (s.tvc.len > 0) A.free(s.tvc);
+        return null;
+    }
+    fn job(ctx: *anyopaque, lo: usize, hi: usize, _: usize) void {
+        const s: *const Sorted = @ptrCast(@alignCast(ctx));
+        for (order[lo..hi], lo..) |o, i| {
+            s.tris[i] = tris[o];
+            s.norms[i] = norms[o];
+            s.mats[i] = mats[o];
+            s.obj_tris[i] = obj_tris[o];
+            s.tuv[i] = tuv[o];
+            s.tvc[i] = tvc[o];
+        }
+    }
+};
+
+/// The tree, on every thread: the big nodes one after the other, their passes
+/// shared out; the subtrees under them one thread each. The tree and the
+/// triangles' order are the same however many threads there are.
+fn buildBvh() bool {
+    const n = tris.len;
+    tbox = A.alloc(Box, n) catch return fail();
+    defer A.free(tbox);
+    cent = A.alloc(m.V3, n) catch return fail();
+    defer A.free(cent);
+    order = A.alloc(u32, n) catch return fail();
+    defer A.free(order);
+    par_bins = A.alloc(Bins, jobs.count()) catch &.{};
+    defer {
+        if (par_bins.len > 0) A.free(par_bins);
+        par_bins = &.{};
+    }
+    var dummy: u8 = 0;
+    jobs.parallelFor(n, 16384, &dummy, boxJob);
     nodes = A.alloc(Node, 2 * n) catch return fail();
     n_nodes = 1;
-    const Task = struct { node: u32, first: u32, count: u32 };
     var stack: std.ArrayList(Task) = .empty;
     defer stack.deinit(A);
+    var subs: std.ArrayList(Sub) = .empty;
+    defer subs.deinit(A);
     stack.append(A, .{ .node = 0, .first = 0, .count = @intCast(n) }) catch return fail();
     while (stack.pop()) |tk| {
-        var bb = Box{};
-        var cb = Box{};
-        for (order[tk.first..][0..tk.count]) |ti| {
-            bb.merge(tbox[ti]);
-            cb.grow(cent[ti]);
-        }
-        const nd = &nodes[tk.node];
-        nd.lo = bb.lo;
-        nd.hi = bb.hi;
-        if (tk.count <= LEAF_MAX) {
-            nd.index = tk.first;
-            nd.count = tk.count;
+        if (tk.count <= SUB_MAX) {
+            subs.append(A, .{ .task = tk, .base = 0 }) catch return fail();
             continue;
         }
-        // the best split: binned SAH on the longest centroid axis... on all three
-        var best_cost = std.math.inf(f32);
-        var best_axis: usize = 0;
-        var best_bin: usize = 0;
-        for (0..3) |ax| {
-            const ext = cb.hi[ax] - cb.lo[ax];
-            if (!(ext > 1e-12)) continue;
-            var bins: [BINS]Box = @splat(.{});
-            var cnt: [BINS]u32 = @splat(0);
-            const k = @as(f32, BINS) / ext;
-            for (order[tk.first..][0..tk.count]) |ti| {
-                const bi: usize = @min(BINS - 1, @as(usize, @intFromFloat(@max(0, (cent[ti][ax] - cb.lo[ax]) * k))));
-                bins[bi].merge(tbox[ti]);
-                cnt[bi] += 1;
-            }
-            var la: [BINS - 1]f32 = undefined;
-            var lc: [BINS - 1]u32 = undefined;
-            var acc = Box{};
-            var c: u32 = 0;
-            for (0..BINS - 1) |i| {
-                acc.merge(bins[i]);
-                c += cnt[i];
-                la[i] = acc.area();
-                lc[i] = c;
-            }
-            acc = .{};
-            c = 0;
-            var i: usize = BINS - 1;
-            while (i > 0) : (i -= 1) {
-                acc.merge(bins[i]);
-                c += cnt[i];
-                const cost = la[i - 1] * @as(f32, @floatFromInt(lc[i - 1])) + acc.area() * @as(f32, @floatFromInt(c));
-                if (lc[i - 1] > 0 and c > 0 and cost < best_cost) {
-                    best_cost = cost;
-                    best_axis = ax;
-                    best_bin = i;
-                }
-            }
-        }
-        var mid: u32 = 0;
-        if (best_cost < std.math.inf(f32)) {
-            const ax = best_axis;
-            const k = @as(f32, BINS) / (cb.hi[ax] - cb.lo[ax]);
-            var lo: u32 = tk.first;
-            var hi: u32 = tk.first + tk.count;
-            while (lo < hi) {
-                const ti = order[lo];
-                const bi: usize = @min(BINS - 1, @as(usize, @intFromFloat(@max(0, (cent[ti][ax] - cb.lo[ax]) * k))));
-                if (bi < best_bin) lo += 1 else {
-                    hi -= 1;
-                    std.mem.swap(u32, &order[lo], &order[hi]);
-                }
-            }
-            mid = lo - tk.first;
-        }
-        if (mid == 0 or mid == tk.count) {
-            // all centroids together: a leaf if small, else halves
-            if (tk.count <= 16) {
-                nd.index = tk.first;
-                nd.count = tk.count;
-                continue;
-            }
-            mid = tk.count / 2;
-        }
         const l: u32 = @intCast(n_nodes);
+        const mid = splitNode(tk, l);
+        if (mid == 0) continue;
         n_nodes += 2;
-        nd.index = l; // the first child; the second follows it
-        nd.count = 0;
         stack.append(A, .{ .node = l, .first = tk.first, .count = mid }) catch return fail();
         stack.append(A, .{ .node = l + 1, .first = tk.first + mid, .count = tk.count - mid }) catch return fail();
     }
+    for (subs.items) |*sb| {
+        sb.base = @intCast(n_nodes);
+        n_nodes += 2 * @as(usize, sb.task.count) - 2;
+    }
+    var sub_list: []const Sub = subs.items;
+    jobs.parallelFor(sub_list.len, 1, @ptrCast(&sub_list), subJob);
     // triangles in leaf order
-    const t2 = A.alloc(Tri, n) catch return fail();
-    const n2 = A.alloc([3]m.V3, n) catch {
-        A.free(t2);
-        return fail();
-    };
-    const m2 = A.alloc(u16, n) catch {
-        A.free(t2);
-        A.free(n2);
-        return fail();
-    };
-    for (order, 0..) |o, i| {
-        t2[i] = tris[o];
-        n2[i] = norms[o];
-        m2[i] = mats[o];
-    }
-    if (!permuteTex()) {
-        A.free(t2);
-        A.free(n2);
-        A.free(m2);
-        return fail();
-    }
+    var s = Sorted.alloc(n) orelse return fail();
+    jobs.parallelFor(n, 16384, &s, Sorted.job);
     A.free(tris);
     A.free(norms);
     A.free(mats);
-    tris = t2;
-    norms = n2;
-    mats = m2;
+    A.free(obj_tris);
+    A.free(tuv);
+    A.free(tvc);
+    tris = s.tris;
+    norms = s.norms;
+    mats = s.mats;
+    obj_tris = s.obj_tris;
+    tuv = s.tuv;
+    tvc = s.tvc;
     return true;
 }
 

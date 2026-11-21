@@ -959,6 +959,7 @@ fn opOrtho() void {
     if (vpView()) |v| {
         @import("viewport.zig").leaveCamView(v);
         v.ortho = !v.ortho;
+        v.auto_ortho = false; // (chosen: orbiting keeps it)
     }
 }
 fn isOrtho() bool {
@@ -979,6 +980,24 @@ fn opCamView() void {
         v.cam_view = true;
         v.gliding = false;
     }
+}
+fn pollCamSelected() ?[]const u8 {
+    if (app.viewportArea() < 0) return "There is no 3D viewport in this workspace";
+    const a = scene.active orelse return "Select a camera first";
+    return if (scene.objects[a].kind != .camera) "The active object is not a camera" else null;
+}
+/// Ctrl+Numpad 0: the selected camera renders, and the viewport looks through it.
+fn opCamSelected() void {
+    const v = vpView() orelse return;
+    const a = scene.active orelse return;
+    if (scene.objects[a].kind != .camera) return;
+    @import("lcam.zig").renderFrom(a);
+    if (!v.cam_view) {
+        v.before_cam = v.pose();
+        v.cam_view = true;
+    }
+    v.gliding = false;
+    undo.label("Look Through Camera");
 }
 fn isCamView() bool {
     return if (vpView()) |v| v.cam_view else false;
@@ -1454,6 +1473,7 @@ const impl_list = .{
     .{ "view.toggle_material_preview", Impl{ .run = opMatPrev, .poll = pollViewport, .check = isShMat, .ctx = .view3d } },
     .{ "view.toggle_ortho", Impl{ .run = opOrtho, .poll = pollViewport, .check = isOrtho, .ctx = .view3d } },
     .{ "view.camera", Impl{ .run = opCamView, .poll = pollCamera, .check = isCamView, .ctx = .view3d } },
+    .{ "view.camera_selected", Impl{ .run = opCamSelected, .poll = pollCamSelected, .ctx = .view3d } },
     .{ "view.camera_to_view", Impl{ .run = opCamToView, .poll = pollViewport, .ctx = .view3d } },
     .{ "view.overlay_text", Impl{ .run = ovText, .poll = pollViewport, .check = isOvText } },
     .{ "view.overlay_stats", Impl{ .run = ovStats, .poll = pollViewport, .check = isOvStats } },

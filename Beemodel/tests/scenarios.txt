@@ -37,6 +37,7 @@ pivot_menu | --click-label "icon:Pivot and Orientation"
 ortho_numpad5 | --move 615,360 --key kp5 --wait 400
 camera_view | --move 615,360 --key kp0
 camera_to_view | --move 615,360 --key ctrl+alt+kp0
+camera_selected | --op 'add("camera","Cam2",-3,1,6)' --op 'select("Cam2")' --move 615,360 --key ctrl+kp0 --expect-label "This camera renders"
 front_view_glide | --move 615,360 --key kp1 --wait 400
 wheel | --rclick 615,360 --move-label wheel:Material
 wheel_preset | --rclick 615,360 --key 7 --key 1
@@ -67,6 +68,7 @@ camview_camera_deleted | --move 615,360 --key kp0 --wait 400 --click-label row:C
 file_open_original | --key enter --type "file.open tests/files/original_default_v2.bee" --key enter
 file_save_dialog | --key ctrl+shift+s
 file_open_dialog | --key ctrl+o
+file_open_drives | --key ctrl+o --expect-label Computer
 save_changes_prompt | --move 615,360 --key x --key ctrl+n
 file_recent_menu | --click-label menu:File --move-label "menuitem:Open Recent"
 export_import_obj_stl | --key enter --type "file.export_obj /tmp/beemodel-headless/s.obj" --key enter --type "file.export_stl /tmp/beemodel-headless/s.stl" --key enter --type "file.import_obj /tmp/beemodel-headless/s.obj" --key enter --type "file.import_stl /tmp/beemodel-headless/s.stl" --key enter

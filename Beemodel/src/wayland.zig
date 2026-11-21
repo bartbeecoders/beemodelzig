@@ -329,6 +329,21 @@ pub const Window = struct {
     };
 
     pub fn push(w: *Window, ev: Input) void {
+        // A slow frame under a fast mouse fills the queue with motions. The
+        // last part of it is kept for what must not be lost (a button's
+        // release: without it the view holds the button for good): there a
+        // motion replaces the motion before it, a wheel turn adds to it.
+        if (w.qlen > 0 and w.qlen >= w.queue.len - 128) {
+            const last = &w.queue[w.qlen - 1];
+            if (ev == .motion and last.* == .motion) {
+                last.* = ev;
+                return;
+            }
+            if (ev == .wheel and last.* == .wheel) {
+                last.wheel += ev.wheel;
+                return;
+            }
+        }
         if (w.qlen < w.queue.len) {
             w.queue[w.qlen] = ev;
             w.qlen += 1;

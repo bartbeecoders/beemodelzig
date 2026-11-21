@@ -215,3 +215,20 @@ test "the wheel: Backspace with the pointer on a child of the open arc" {
     try f.frame(0.016);
     try f.play("expect pie_item:Sphere missing");
 }
+
+test "the wheel: a click outside closes it" {
+    const f = try Fixture.create();
+    defer f.destroy();
+    try f.frame(0.016);
+    f.ui.input.onMouseMove(.{ .x = 400, .y = 300 });
+    try f.frame(0.016);
+    f.ui.openWheel("Wheel", null);
+    try f.frame(0.016);
+    f.ui.input.onMouseMove(.{ .x = 700, .y = 300 });
+    try f.frame(0.016);
+    f.ui.input.onMouseButton(.left, true);
+    try f.frame(0.016);
+    try testing.expectEqual(zui.WheelResult.cancelled, f.app.wheel.?);
+    try testing.expect(!f.ui.radialOpen());
+    try testing.expectEqual(@as(u32, 0), f.app.behind);
+}

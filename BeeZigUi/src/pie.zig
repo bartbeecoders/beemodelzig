@@ -13,8 +13,8 @@
 //!
 //! The wheel is a ring of coloured entries with icons; entries with
 //! children open an outer arc. Click, or press, drag and let go; the number
-//! keys 1 to 9, 0 and - pick; Backspace goes back to the ring; Esc or the
-//! centre closes:
+//! keys 1 to 9, 0 and - pick; Backspace goes back to the ring; Esc, the
+//! centre or a click outside closes:
 //!
 //!     if (canvas.right_pressed) ui.openWheel("Context", .right);
 //!     switch (ui.wheel("Context", &entries, .{})) {
@@ -101,7 +101,8 @@ pub const WheelOptions = struct {
     inner: f32 = 44,
     outer: f32 = 112,
     /// Each entry's name under its icon on the ring (else only the one the
-    /// pointer is on, above the wheel).
+    /// pointer is on, in the middle, or above the wheel if it is too long
+    /// for there).
     labels: bool = false,
 };
 
@@ -387,8 +388,11 @@ pub fn wheel(ui: *Ui, name: []const u8, items: []const WheelItem, options: Wheel
     const start = -std.math.pi / 2.0;
 
     // Which entry the direction points at.
+    // (beyond the rim only the direction of a drag with the button down
+    // counts: a click out there closes)
+    const dragging = st.button != null;
     var hovered: ?usize = null;
-    if (dist > inner) {
+    if (dist > inner and (dist <= outer + 2 or dragging)) {
         const t = @mod(angle - start + span / 2, 2 * std.math.pi);
         hovered = @min(n - 1, @as(usize, @intFromFloat(@floor(t / span))));
     }
@@ -403,7 +407,7 @@ pub fn wheel(ui: *Ui, name: []const u8, items: []const WheelItem, options: Wheel
         const kids = items[g].children;
         const mid = start + @as(f32, @floatFromInt(g)) * span;
         const total = child_span * @as(f32, @floatFromInt(kids.len));
-        if (dist > outer + 2) {
+        if (dist > outer + 2 and (dist <= arc_out + 2 or dragging)) {
             const rel = @mod(angle - (mid - total / 2) + std.math.pi, 2 * std.math.pi) - std.math.pi;
             if (rel >= 0 and rel < total) {
                 child_hovered = @min(kids.len - 1, @as(usize, @intFromFloat(@floor(rel / child_span))));
@@ -452,7 +456,7 @@ pub fn wheel(ui: *Ui, name: []const u8, items: []const WheelItem, options: Wheel
                 } else result = .{ .chosen = .{ .item = hv } };
             }
         } else if (st.click) {
-            // A click in the middle closes.
+            // A click in the middle or outside closes.
             result = .cancelled;
         }
     }
@@ -465,64 +469,74 @@ pub fn wheel(ui: *Ui, name: []const u8, items: []const WheelItem, options: Wheel
 
     const p = ui.painter();
     const bounds: Rect = .{ .x = c.x - outer, .y = c.y - outer, .w = 2 * outer, .h = 2 * outer };
-    ui.drawShadow(bounds, outer, colors.popup);
-    p.circle(c, outer + 1, colors.border);
-    p.circle(c, outer, colors.popup);
-    const line_h = ui.textSize("").y;
-    const gap: f32 = 0.015;
+    // The disc under the entries: what shows between them.
+    const disc = color.mix(colors.popup, Color.black, 0.35);
+    const hub = inner - 3;
+    ui.drawShadow(bounds, outer, disc);
+    p.circle(c, outer + 1.5, colors.border);
+    p.circle(c, outer, disc);
     for (items[0..n], 0..) |item, i| {
         const mid = start + @as(f32, @floatFromInt(i)) * span;
-        drawEntry(ui, item, i, c, inner + 2, outer - 2, mid - span / 2 + gap, mid + span / 2 - gap, hovered == i and child_hovered == null, st.group == i);
-        if (options.labels) {
-            // its name under the icon, smaller
-            const rm = (inner + outer) / 2;
-            const at: Vec2 = .{ .x = c.x + @cos(mid) * rm, .y = c.y + @sin(mid) * rm };
-            ui.pushMetric(.font_size, style.font_size * 0.8);
-            const tw = ui.textSize(item.label).x;
-            const base = item.color orelse colors.button;
-            const ink = color.textOn(if (item.disabled != null) color.mix(base, colors.popup, 0.6) else base);
-            ui.drawText(.{ .x = at.x - tw / 2, .y = at.y + 11 }, if (item.disabled != null) ink.withAlpha(110) else ink, item.label);
-            ui.popStyle();
-        }
+        drawEntry(ui, item, i, c, inner, outer - 1.5, mid - span / 2, mid + span / 2, hovered == i and child_hovered == null, st.group == i, options.labels);
     }
-    // The middle: closes on click.
-    p.circle(c, inner - 2, colors.window);
-    p.circleOutline(c, inner - 2, colors.border, 1);
-    if (dist > inner) p.arc(c, inner - 2, angle - 0.35, angle + 0.35, colors.accent, 3);
+    // Between the entries: lines as wide at the hub as at the rim.
+    if (n > 1) for (0..n) |i| {
+        const a = start + (@as(f32, @floatFromInt(i)) - 0.5) * span;
+        p.line(.{ .x = c.x + @cos(a) * hub, .y = c.y + @sin(a) * hub }, .{ .x = c.x + @cos(a) * outer, .y = c.y + @sin(a) * outer }, disc, 2);
+    };
+    // The middle: closes on click; names what the pointer is on.
+    p.circle(c, inner, disc);
+    p.circle(c, hub, colors.popup);
+    p.circleOutline(c, hub, colors.border, 1);
+    if (dist > inner and (hovered != null or dist <= arc_out + 2)) p.arc(c, hub - 1, angle - 0.3, angle + 0.3, colors.accent, 2.5);
+    const line_h = ui.textSize("").y;
+    const pointed: ?WheelItem = if (child_hovered) |ch| items[st.group.?].children[ch] else if (hovered) |hv| items[hv] else null;
+    const named = if (pointed) |item| blk: {
+        const tw = ui.textSize(item.label).x;
+        if (tw > 2 * hub - 12) break :blk false;
+        ui.drawText(.{ .x = c.x - tw / 2, .y = c.y - line_h / 2 }, if (item.disabled != null) colors.text_muted else colors.text, item.label);
+        break :blk true;
+    } else false;
+    if (!named) {
+        const s: f32 = @min(16, hub);
+        p.icon(.{ .builtin = .close }, .{ .x = c.x - s / 2, .y = c.y - s / 2, .w = s, .h = s }, colors.text_muted.withAlpha(if (dist <= inner) 255 else 120));
+    }
 
     // The open arc.
     if (st.group) |g| {
         const kids = items[g].children;
         const mid = start + @as(f32, @floatFromInt(g)) * span;
         const total = child_span * @as(f32, @floatFromInt(kids.len));
-        p.ringSegment(c, arc_in - 1, arc_out + 1, mid - total / 2 - 0.01, mid + total / 2 + 0.01, colors.border);
-        p.ringSegment(c, arc_in, arc_out, mid - total / 2, mid + total / 2, colors.popup);
+        const from = mid - total / 2;
+        const pad = 2 / arc_in;
+        p.ringSegment(c, arc_in - 3.5, arc_out + 3.5, from - pad * 1.75, from + total + pad * 1.75, colors.border);
+        p.ringSegment(c, arc_in - 2, arc_out + 2, from - pad, from + total + pad, disc);
         ui.pushId(items[g].label);
         for (kids, 0..) |kid, k| {
-            const a0 = mid - total / 2 + @as(f32, @floatFromInt(k)) * child_span;
-            drawEntry(ui, kid, k, c, arc_in + 2, arc_out - 2, a0 + gap, a0 + child_span - gap, child_hovered == k, false);
-            // Its name outside the arc, on the side it points to.
-            const am = a0 + child_span / 2;
-            const lp: Vec2 = .{ .x = c.x + @cos(am) * (arc_out + 10), .y = c.y + @sin(am) * (arc_out + 10) };
-            const lw = ui.textSize(kid.label).x;
-            const lx = if (@cos(am) < -0.2) lp.x - lw else if (@cos(am) > 0.2) lp.x else lp.x - lw / 2;
-            const ly = lp.y - line_h / 2 + (if (@sin(am) < -0.6) -line_h / 2 else if (@sin(am) > 0.6) line_h / 2 else 0);
-            ui.drawText(.{ .x = lx, .y = ly }, if (kid.disabled != null) colors.text_muted else colors.text, kid.label);
+            const a0 = from + @as(f32, @floatFromInt(k)) * child_span;
+            drawEntry(ui, kid, k, c, arc_in, arc_out, a0, a0 + child_span, child_hovered == k, false, true);
+        }
+        for (1..kids.len) |k| {
+            const a = from + @as(f32, @floatFromInt(k)) * child_span;
+            p.line(.{ .x = c.x + @cos(a) * arc_in, .y = c.y + @sin(a) * arc_in }, .{ .x = c.x + @cos(a) * arc_out, .y = c.y + @sin(a) * arc_out }, disc, 2);
         }
         ui.popId();
     }
 
     // What the pointer is on, above the wheel; why it is greyed.
-    const shown: ?WheelItem = if (child_hovered) |ch| items[st.group.?].children[ch] else if (hovered) |hv| items[hv] else null;
-    if (shown) |item| {
+    if (pointed) |item| {
         const top = c.y - (if (st.group != null) arc_out else outer) - 2 * line_h - 14;
         const tw = ui.textSize(item.label).x;
         const chip: Rect = .{ .x = c.x - tw / 2 - 10, .y = top, .w = tw + 20, .h = line_h + 8 };
-        ui.drawRect(.{ .rect = chip, .fill = colors.popup, .border = colors.border, .border_width = 1, .radius = style.rounding });
-        ui.drawText(.{ .x = chip.x + 10, .y = chip.y + 4 }, colors.text, item.label);
+        if (!named) {
+            ui.drawShadow(chip, style.rounding, colors.popup);
+            ui.drawRect(.{ .rect = chip, .fill = colors.popup, .border = colors.border, .border_width = 1, .radius = style.rounding });
+            ui.drawText(.{ .x = chip.x + 10, .y = chip.y + 4 }, colors.text, item.label);
+        }
         if (item.disabled) |why| {
             const ww = ui.textSize(why).x;
             const r: Rect = .{ .x = c.x - ww / 2 - 10, .y = chip.bottom() + 2, .w = ww + 20, .h = line_h + 8 };
+            ui.drawShadow(r, style.rounding, colors.popup);
             ui.drawRect(.{ .rect = r, .fill = colors.popup, .border = colors.warning, .border_width = 1, .radius = style.rounding });
             ui.drawText(.{ .x = r.x + 10, .y = r.y + 4 }, colors.warning, why);
         }
@@ -531,44 +545,124 @@ pub fn wheel(ui: *Ui, name: []const u8, items: []const WheelItem, options: Wheel
     return result;
 }
 
-/// One entry: a coloured ring segment with its icon and number key.
-fn drawEntry(ui: *Ui, item: WheelItem, index: usize, c: Vec2, r0: f32, r1: f32, a0: f32, a1: f32, lit: bool, open: bool) void {
+/// True if `pt` is on the ring segment.
+fn onSegment(c: Vec2, pt: Vec2, r0: f32, r1: f32, a0: f32, a1: f32) bool {
+    const d = pt.sub(c);
+    const r = d.length();
+    if (r < r0 or r > r1) return false;
+    const rel = @mod(std.math.atan2(d.y, d.x) - (a0 + a1) / 2 + std.math.pi, 2 * std.math.pi) - std.math.pi;
+    return @abs(rel) <= (a1 - a0) / 2;
+}
+
+/// How far the segment goes on from `pt` along x, towards `sign`.
+fn roomAt(c: Vec2, pt: Vec2, sign: f32, r0: f32, r1: f32, a0: f32, a1: f32) f32 {
+    var far: f32 = 0;
+    while (far < 120 and onSegment(c, .{ .x = pt.x + sign * far, .y = pt.y }, r0, r1, a0, a1)) far += 1;
+    return far;
+}
+
+/// `label`, or its start and an ellipsis, to fit `room` at the current font
+/// size; empty if not even that fits.
+fn fitLabel(ui: *Ui, label: []const u8, room: f32, buffer: *[64]u8) []const u8 {
+    if (ui.textSize(label).x <= room) return label;
+    const dots = "\u{2026}";
+    var len = @min(label.len, buffer.len - dots.len);
+    while (len > 0) {
+        len -= 1;
+        // (never in the middle of a character)
+        while (len > 0 and label[len] & 0xc0 == 0x80) len -= 1;
+        if (len < 2) break;
+        @memcpy(buffer[0..len], label[0..len]);
+        @memcpy(buffer[len..][0..dots.len], dots);
+        const s = buffer[0 .. len + dots.len];
+        if (ui.textSize(s).x <= room) return s;
+    }
+    return "";
+}
+
+/// One entry: a quiet ring segment with its colour on the rim, on the icon
+/// and, under the pointer, all over; its name and number key.
+fn drawEntry(ui: *Ui, item: WheelItem, index: usize, c: Vec2, r0: f32, r1: f32, a0: f32, a1: f32, lit: bool, open: bool, named: bool) void {
     const style = &ui.style;
     const colors = &style.colors;
     const p = ui.painter();
-    const base = item.color orelse colors.button;
+    const base = item.color orelse colors.button_active;
     const disabled = item.disabled != null;
-    var fill = if (lit or open) color.mix(base, Color.white, 0.22) else base;
-    if (disabled) fill = color.mix(base, colors.popup, 0.6);
+    const fill = if (disabled)
+        colors.popup
+    else if (lit)
+        base
+    else
+        color.mix(colors.popup, base, if (open) 0.4 else 0.12);
     p.ringSegment(c, r0, r1, a0, a1, fill);
-    if (lit and !disabled) p.arc(c, r1 - 1.5, a0, a1, colors.accent, 3);
+    // Its colour along the rim.
+    const rim: f32 = 3;
+    if (!lit or disabled) p.ringSegment(c, r1 - rim, r1, a0, a1, if (disabled) color.mix(colors.popup, base, 0.3) else base);
+
+    const on = color.textOn(fill);
+    const text_ink = if (disabled) colors.text_muted.withAlpha(120) else if (lit) on else colors.text;
+    const icon_ink = if (disabled or lit) text_ink else color.ensureContrast(base, fill, colors.text, 3.5);
+    const quiet_ink = if (disabled) text_ink else if (lit) on.withAlpha(170) else colors.text_muted;
+
+    // The icon with the name under it, as one block in the middle.
     const mid = (a0 + a1) / 2;
-    const rm = (r0 + r1) / 2;
+    const depth = r1 - r0;
+    const rm = r0 + depth * 0.54;
     const at: Vec2 = .{ .x = c.x + @cos(mid) * rm, .y = c.y + @sin(mid) * rm };
-    const ink = if (disabled) color.textOn(fill).withAlpha(110) else color.textOn(fill);
-    const size: f32 = 20;
-    const box: Rect = .{ .x = at.x - size / 2, .y = at.y - size / 2, .w = size, .h = size };
+    const size: f32 = std.math.clamp(depth * 0.24, 16, 24);
+    ui.pushMetric(.font_size, style.font_size * 0.82);
+    const small_h = ui.textSize("").y;
+    var buffer: [64]u8 = undefined;
+    var label: []const u8 = "";
+    var shift: f32 = 0;
+    if (named) {
+        // (the line's top and bottom both stay on the segment; where the
+        // segment slants, the name moves a little towards the roomy side)
+        const ly = at.y + (size + 2 - small_h) / 2;
+        const top: Vec2 = .{ .x = at.x, .y = ly + 2 };
+        const bottom: Vec2 = .{ .x = at.x, .y = ly + small_h - 2 };
+        const left = @min(roomAt(c, top, -1, r0, r1 - rim, a0, a1), roomAt(c, bottom, -1, r0, r1 - rim, a0, a1));
+        const right = @min(roomAt(c, top, 1, r0, r1 - rim, a0, a1), roomAt(c, bottom, 1, r0, r1 - rim, a0, a1));
+        shift = std.math.clamp((right - left) / 2, -10, 10);
+        label = fitLabel(ui, item.label, 2 * @min(left + shift, right - shift) - 6, &buffer);
+    }
+    const block = if (label.len > 0) size + 2 + small_h else size;
+    const box: Rect = .{ .x = at.x - size / 2, .y = at.y - block / 2, .w = size, .h = size };
+    if (label.len > 0) ui.drawText(.{ .x = at.x + shift - ui.textSize(label).x / 2, .y = box.bottom() + 2 }, text_ink, label);
+    ui.popStyle();
     if (item.icon) |ic| {
-        p.icon(ic, box, ink);
+        p.icon(ic, box, icon_ink);
     } else {
         // No icon: the first letter.
         const letter = item.label[0..@min(item.label.len, std.unicode.utf8ByteSequenceLength(if (item.label.len > 0) item.label[0] else 0) catch 1)];
         const tw = ui.textSize(letter).x;
-        ui.drawText(.{ .x = at.x - tw / 2, .y = at.y - ui.textSize("").y / 2 }, ink, letter);
+        ui.drawText(.{ .x = at.x - tw / 2, .y = box.y + (size - ui.textSize("").y) / 2 }, icon_ink, letter);
     }
     if (item.children.len > 0) {
-        // An arrow outwards: there is more.
-        const tip: Vec2 = .{ .x = c.x + @cos(mid) * (r1 - 6), .y = c.y + @sin(mid) * (r1 - 6) };
-        p.circle(tip, 2.5, ink);
+        // An arrowhead outwards: there is more.
+        const dir: Vec2 = .{ .x = @cos(mid), .y = @sin(mid) };
+        const side: Vec2 = .{ .x = -dir.y, .y = dir.x };
+        const tip_r = r1 - rim - 3;
+        const back_r = tip_r - 4.5;
+        p.polygon(&.{
+            .{ .x = c.x + dir.x * back_r + side.x * 4.5, .y = c.y + dir.y * back_r + side.y * 4.5 },
+            .{ .x = c.x + dir.x * tip_r, .y = c.y + dir.y * tip_r },
+            .{ .x = c.x + dir.x * back_r - side.x * 4.5, .y = c.y + dir.y * back_r - side.y * 4.5 },
+        }, quiet_ink);
     }
     // The number key, near the inner edge.
     const keys = "1234567890-";
     if (index < keys.len) {
-        const kp: Vec2 = .{ .x = c.x + @cos(mid) * (r0 + 9), .y = c.y + @sin(mid) * (r0 + 9) };
+        // (a shallow segment has it in the corner, clear of the name)
+        // (a shallow segment has it in the upper inner corner, clear of the
+        // name)
+        const inset = 11 / (r0 + 10);
+        const ka = if (depth >= 72) mid else if (@sin(a0 + inset) <= @sin(a1 - inset)) a0 + inset else a1 - inset;
+        const kp: Vec2 = .{ .x = c.x + @cos(ka) * (r0 + 10), .y = c.y + @sin(ka) * (r0 + 10) };
         const k = keys[index..][0..1];
-        const kw = ui.textSize(k).x * 0.8;
-        ui.pushMetric(.font_size, style.font_size * 0.8);
-        ui.drawText(.{ .x = kp.x - kw / 2, .y = kp.y - ui.textSize(k).y / 2 }, ink.withAlpha(@min(ink.a, 150)), k);
+        ui.pushMetric(.font_size, style.font_size * 0.72);
+        const ks = ui.textSize(k);
+        ui.drawText(.{ .x = kp.x - ks.x / 2, .y = kp.y - ks.y / 2 }, quiet_ink.withAlpha(@min(quiet_ink.a, 170)), k);
         ui.popStyle();
     }
     ui.recordWidget(.pie_item, .none, item.label, box.inset(-4), .{ .hovered = lit, .enabled = !disabled, .value = if (open) "open" else item.disabled });

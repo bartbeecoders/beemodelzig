@@ -168,6 +168,7 @@ pub const DslBinding = extern struct { binding: u32 = 0, type: u32 = DESC_STORAG
 pub const DslCI = extern struct { s: u32 = ST_DSL, next: ?*const anyopaque = null, flags: u32 = 0, n: u32 = 0, b: ?[*]const DslBinding = null };
 pub const PlCI = extern struct { s: u32 = ST_PLAYOUT, next: ?*const anyopaque = null, flags: u32 = 0, n: u32 = 1, dsl: ?*const u64 = null, npc: u32 = 0, pc: ?*const anyopaque = null };
 pub const StageCI = extern struct { s: u32 = ST_STAGE, next: ?*const anyopaque = null, flags: u32 = 0, stage: u32 = STAGE_COMPUTE, module: u64 = 0, name: [*:0]const u8 = "main", spec: ?*const anyopaque = null };
+pub const PCacheCI = extern struct { s: u32 = 17, next: ?*const anyopaque = null, flags: u32 = 0, size: usize = 0, data: ?*const anyopaque = null };
 pub const ComputeCI = extern struct { s: u32 = ST_COMPUTE, next: ?*const anyopaque = null, flags: u32 = 0, stage: StageCI = .{}, layout: u64 = 0, base: u64 = 0, base_i: i32 = -1 };
 pub const PoolSize = extern struct { type: u32, count: u32 };
 pub const DPoolCI = extern struct { s: u32 = ST_DPOOL, next: ?*const anyopaque = null, flags: u32 = 0, max: u32 = 0, n: u32 = 0, sizes: ?[*]const PoolSize = null };
@@ -238,6 +239,8 @@ pub const Fns = struct {
     CreateDescriptorSetLayout: ?*const fn (H, *const DslCI, P, *u64) callconv(.c) Result = null,
     CreatePipelineLayout: ?*const fn (H, *const PlCI, P, *u64) callconv(.c) Result = null,
     CreateComputePipelines: ?*const fn (H, u64, u32, *const ComputeCI, P, *u64) callconv(.c) Result = null,
+    CreatePipelineCache: ?*const fn (H, *const PCacheCI, P, *u64) callconv(.c) Result = null,
+    GetPipelineCacheData: ?*const fn (H, u64, *usize, ?*anyopaque) callconv(.c) Result = null,
     CreateDescriptorPool: ?*const fn (H, *const DPoolCI, P, *u64) callconv(.c) Result = null,
     AllocateDescriptorSets: ?*const fn (H, *const DsAlloc, *u64) callconv(.c) Result = null,
     UpdateDescriptorSets: ?*const fn (H, u32, [*]const Write, u32, P) callconv(.c) void = null,

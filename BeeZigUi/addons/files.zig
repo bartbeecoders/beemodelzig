@@ -810,7 +810,8 @@ fn completePath(ui: *Ui, b: *Browser) void {
 }
 
 fn sidebar(ui: *Ui, b: *Browser, options: Options) void {
-    ui.beginVertical(.{ .width = .px(190), .height = .fill });
+    // (scrolls: many drives and recent folders outgrow a short dialog)
+    ui.beginScrollArea("##places", .{ .width = .px(190), .height = .fill, .frame = false, .padding = 0 });
     const muted = ui.style.colors.text_muted;
     const sections = [_]struct { []const u8, []const Place }{
         .{ "Places", options.places },
@@ -851,7 +852,7 @@ fn sidebar(ui: *Ui, b: *Browser, options: Options) void {
         }
         ui.popId();
     }
-    ui.endVertical();
+    ui.endScrollArea();
 }
 
 fn listing(ui: *Ui, b: *Browser, options: Options) ?Result {

@@ -396,6 +396,7 @@ fn setup() u32 {
     // (graphics needs nothing more of the pool)
     const dp = vk.DPoolCI{ .max = ipc.NKERN, .n = if (rtx) 2 else 1, .sizes = &sizes };
     if (f.CreateDescriptorPool.?(device, &dp, null, &dpool) != 0) return ipc.GH_NODEVICE;
+    pcacheOpen();
     return ipc.GH_OK;
 }
 
@@ -432,7 +433,7 @@ fn makeKernel(ki: usize) bool {
     const pci = vk.PlCI{ .dsl = &k.dsl };
     if (f.CreatePipelineLayout.?(device, &pci, null, &k.layout) != 0) return false;
     const cci = vk.ComputeCI{ .stage = .{ .module = k.module }, .layout = k.layout };
-    if (f.CreateComputePipelines.?(device, 0, 1, &cci, null, &k.pipe) != 0) {
+    if (f.CreateComputePipelines.?(device, pcache, 1, &cci, null, &k.pipe) != 0) {
         k.pipe = 0;
         return false;
     }
@@ -441,7 +442,119 @@ fn makeKernel(ki: usize) bool {
         k.pipe = 0;
         return false;
     }
+    pcache_new = true;
     return true;
+}
+
+// --- the kernels' cache -------------------------------------------------------------------------
+//
+// A driver takes seconds to compile the path tracer's kernels. What it made of
+// them is kept in ~/.cache/beemodel-zig (XDG_CACHE_HOME), one file per device,
+// and handed back at the next start: the kernels are then there at once. The
+// driver checks the file is its own (the header: vendor, device, its pipeline
+// cache's UUID, which moves with the driver); a file that is not is left out
+// here already. BEEMODEL_GPU_CACHE=off: none.
+
+var pcache: u64 = 0;
+var pcache_new = false; // a kernel was made since the file was written
+var pcache_path: [600]u8 = undefined;
+var pcache_path_len: usize = 0;
+const PCACHE_MAX = 256 << 20;
+
+fn mkdirZ(path: []const u8) void {
+    var b: [640]u8 = undefined;
+    const z = std.fmt.bufPrintSentinel(&b, "{s}", .{path}, 0) catch return;
+    _ = linux.mkdir(z.ptr, 0o700);
+}
+
+/// The device's 32 bytes as a pipeline cache's data begins: length, version,
+/// vendor, device, UUID.
+fn pcacheHeader() [32]u8 {
+    const pb: [*]const u8 = @ptrCast(&props);
+    var h: [32]u8 = undefined;
+    std.mem.writeInt(u32, h[0..4], 32, .little);
+    std.mem.writeInt(u32, h[4..8], 1, .little);
+    h[8..16].* = pb[8..16].*; // vendorID, deviceID
+    h[16..32].* = pb[276..292].*; // pipelineCacheUUID
+    return h;
+}
+
+fn pcacheOpen() void {
+    if (f.CreatePipelineCache == null or f.GetPipelineCacheData == null) return;
+    var data: []u8 = &.{};
+    defer if (data.len > 0) ca.free(data);
+    find: {
+        if (envIs("BEEMODEL_GPU_CACHE", "off")) break :find;
+        var dir: [512]u8 = undefined;
+        var dl: usize = 0;
+        if (env("XDG_CACHE_HOME")) |x| {
+            if (x.len == 0 or x[0] != '/') break :find;
+            dl = (std.fmt.bufPrint(&dir, "{s}", .{x}) catch break :find).len;
+        } else {
+            const h = env("HOME") orelse break :find;
+            if (h.len == 0 or h[0] != '/') break :find;
+            dl = (std.fmt.bufPrint(&dir, "{s}/.cache", .{h}) catch break :find).len;
+        }
+        mkdirZ(dir[0..dl]);
+        var sub: [540]u8 = undefined;
+        const d2 = std.fmt.bufPrint(&sub, "{s}/beemodel-zig", .{dir[0..dl]}) catch break :find;
+        mkdirZ(d2);
+        const hd = pcacheHeader();
+        const z = std.fmt.bufPrintSentinel(&pcache_path, "{s}/kernels-{x}-{x}.bin", .{ d2, std.mem.readInt(u32, hd[8..12], .little), std.mem.readInt(u32, hd[12..16], .little) }, 0) catch break :find;
+        pcache_path_len = z.len;
+        const fd = linux.open(z.ptr, .{ .ACCMODE = .RDONLY, .CLOEXEC = true, .NOFOLLOW = true }, 0);
+        if (linux.errno(fd) != .SUCCESS) break :find;
+        defer _ = linux.close(@intCast(fd));
+        const end = linux.lseek(@intCast(fd), 0, 2);
+        if (linux.errno(end) != .SUCCESS or end < 32 or end > PCACHE_MAX) break :find;
+        _ = linux.lseek(@intCast(fd), 0, 0);
+        const buf = ca.alloc(u8, end) catch break :find;
+        var got: usize = 0;
+        while (got < buf.len) {
+            const n = linux.read(@intCast(fd), buf[got..].ptr, buf.len - got);
+            if (linux.errno(n) == .INTR) continue;
+            if (linux.errno(n) != .SUCCESS or n == 0) break;
+            got += n;
+        }
+        if (got != buf.len or !std.mem.eql(u8, buf[0..32], &hd)) {
+            ca.free(buf);
+            break :find;
+        }
+        data = buf;
+    }
+    var ci = vk.PCacheCI{ .size = data.len, .data = if (data.len > 0) data.ptr else null };
+    if (f.CreatePipelineCache.?(device, &ci, null, &pcache) != 0) {
+        // (data the driver will not have: an empty one)
+        ci = .{};
+        if (f.CreatePipelineCache.?(device, &ci, null, &pcache) != 0) pcache = 0;
+    }
+}
+
+/// What the driver made of the kernels, to the file (written beside it, then
+/// moved over it: a start that reads it sees all of it or the old one).
+fn pcacheSave() void {
+    if (!pcache_new) return;
+    pcache_new = false;
+    if (pcache == 0 or pcache_path_len == 0) return;
+    var size: usize = 0;
+    if (f.GetPipelineCacheData.?(device, pcache, &size, null) != 0 or size < 32 or size > PCACHE_MAX) return;
+    const buf = ca.alloc(u8, size) catch return;
+    defer ca.free(buf);
+    if (f.GetPipelineCacheData.?(device, pcache, &size, buf.ptr) != 0 or size < 32) return;
+    var tb: [640]u8 = undefined;
+    const tmp = std.fmt.bufPrintSentinel(&tb, "{s}.{d}.tmp", .{ pcache_path[0..pcache_path_len], linux.getpid() }, 0) catch return;
+    const fd = linux.open(tmp.ptr, .{ .ACCMODE = .WRONLY, .CREAT = true, .EXCL = true, .CLOEXEC = true, .NOFOLLOW = true }, 0o600);
+    if (linux.errno(fd) != .SUCCESS) return;
+    var put: usize = 0;
+    while (put < size) {
+        const n = linux.write(@intCast(fd), buf[put..].ptr, size - put);
+        if (linux.errno(n) == .INTR) continue;
+        if (linux.errno(n) != .SUCCESS or n == 0) break;
+        put += n;
+    }
+    _ = linux.close(@intCast(fd));
+    const dst: [*:0]const u8 = @ptrCast(&pcache_path);
+    if (put != size or linux.errno(linux.rename(tmp.ptr, dst)) != .SUCCESS) _ = linux.unlink(tmp.ptr);
 }
 
 // --- memory -------------------------------------------------------------------------------------
@@ -728,6 +841,7 @@ fn doRun(m: *const ipc.Msg, ms: *u32) u32 {
     if (rtx_run and !rtx) return bad(3);
     if (!makeKernel(ki)) return bad(4);
     if (rtx_run and !makeKernel(ipc.K_PREP)) return bad(5);
+    pcacheSave();
     const k = &kernels[ki];
     const base = s.base orelse return bad(6);
     const nbind = m.a;
@@ -924,7 +1038,7 @@ fn makeView() bool {
     const dy = [2]u32{ 0, 1 };
     const dyn = vk.DynCI{ .n = 2, .st = &dy };
     const gci = vk.GraphicsCI{ .st = &st, .vi = &vi, .ia = &ia, .vp = &vps, .rs = &rs, .ms = &ms, .ds = &ds, .cb = &cb, .dyn = &dyn, .layout = k.layout, .rp = gv_rp };
-    if (f.CreateGraphicsPipelines.?(device, 0, 1, &gci, null, &k.pipe) != 0) {
+    if (f.CreateGraphicsPipelines.?(device, pcache, 1, &gci, null, &k.pipe) != 0) {
         k.pipe = 0;
         return false;
     }
@@ -933,6 +1047,7 @@ fn makeView() bool {
         k.pipe = 0;
         return false;
     }
+    pcache_new = true;
     return true;
 }
 
@@ -1028,6 +1143,7 @@ fn doWarm(rtx_taken: bool) u32 {
     if (!rtx or !rtx_taken) _ = makeKernel(ipc.K_PTG);
     _ = makeKernel(ipc.K_RASTER);
     if (gfx) _ = makeKernel(ipc.K_VIEW);
+    pcacheSave();
     return 0;
 }
 

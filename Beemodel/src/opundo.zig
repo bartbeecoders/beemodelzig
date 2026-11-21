@@ -42,6 +42,7 @@ pub const ids = [_][]const u8{
     "scene.units",
     "cad.feature_move",
     "view.camera_to_view",
+    "view.camera_selected",
     "cloth.add",
     "cloth.remove",
     "cloth.pin",

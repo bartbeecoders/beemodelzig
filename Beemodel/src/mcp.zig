@@ -1290,5 +1290,5 @@ test "tool names and the agent-safe list" {
     for (cat.entries, 0..) |e, k| {
         if (flags.safe[k] and !e.hidden) n += 1;
     }
-    try std.testing.expectEqual(@as(usize, 556), n); // the original's tools/list
+    try std.testing.expectEqual(@as(usize, 557), n); // the original's tools/list, + view.camera_selected
 }

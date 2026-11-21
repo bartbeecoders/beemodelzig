@@ -74,6 +74,9 @@ var shown_spp: u32 = 0;
 var img: []u32 = &.{}; // what shows: XRGB
 var img_w: u32 = 0;
 var img_h: u32 = 0;
+var img_view: u32 = 0; // the view (view_gen) the image is of
+var img_fresh = false;
+var next_show: u32 = 0; // the denoised image is made again at this many samples
 var failed_mem = false;
 var last_sh: u64 = 0;
 
@@ -141,6 +144,7 @@ pub fn release() void {
     img = &.{};
     img_w = 0;
     img_h = 0;
+    img_fresh = false;
 }
 
 /// The last frame went this way: live.zig's turn and line are ours.
@@ -172,6 +176,8 @@ fn takePixels() void {
     @memcpy(img, px);
     img_w = w;
     img_h = h;
+    img_view = view_gen;
+    img_fresh = true;
     app.dirty = true;
 }
 
@@ -202,6 +208,7 @@ fn restart() void {
     state = .none;
     spp = 0;
     batch = 1;
+    next_show = 0;
     view_gen +%= 1;
 }
 
@@ -253,6 +260,10 @@ fn finishOp() void {
                 moving_frame = true;
             }
             if (!shows()) return;
+            // The denoiser costs more than a sample: while the view refines
+            // it runs when half as many samples again are in, and at the end.
+            if (o == .samples and dn and spp < target() and spp < next_show) return;
+            next_show = spp + @max(1, spp / 2);
             if (dn) {
                 dn_t0 = nowUs();
                 _ = send(.{ .dn = 1 }, F_LIVE | F_DN | (1 << 8), spp, 0, 0);
@@ -275,6 +286,11 @@ fn finishOp() void {
             frameDone();
         },
     }
+}
+
+/// The image is of the view and the scene as they are now.
+fn haveImage() bool {
+    return img_fresh and img_view == view_gen and state != .none;
 }
 
 /// What to do next: true when a run went out.
@@ -303,11 +319,13 @@ fn nextOp() bool {
     return send(.{ .samples = n }, F_LIVE | dnf, spp, n, if (dn) 0 else O_PIX);
 }
 
-/// Runs for at most budget ms.
-fn step(budget: i32) void {
+/// Runs for at most budget ms. `for_frame`: a frame's wait, over as soon as
+/// the view it draws has its image (what refines it is sent, not waited for).
+fn step(budget: i32, for_frame: bool) void {
     const t0 = nowMs();
     while (true) {
         if (op != .none or gpu.busy()) {
+            if (for_frame and haveImage()) return;
             const left: i64 = @as(i64, budget) - (nowMs() - t0);
             if (left < 0 or !gpu.runWait(@intCast(left))) return;
             if (!gpu.isUp()) return;
@@ -366,7 +384,7 @@ pub fn frame(cv: *gfx.Canvas, r0: Rect, r: Rect, c: *const vp.Cam, nw: u32, nh: 
         return true;
     }
     policy(sh);
-    step(FRAME_WAIT_MS);
+    step(FRAME_WAIT_MS, true);
     if (gpu.lost != gen_lost or !gpu.isUp()) {
         return frameLost();
     }
@@ -405,7 +423,7 @@ pub fn tick() ?i32 {
     }
     // the change is over: a frame to see it with
     if (last_sh != hash and !render.active) app.dirty = true;
-    step(LV_SLICE_MS);
+    step(LV_SLICE_MS, false);
     if (!gpu.isUp()) return null;
     if (!more() and last_sh == hash) return null;
     if (state != .none and spp == 0 and op == .none) {
@@ -424,7 +442,7 @@ pub fn finish() bool {
     policy(last_sh);
     var guard: u32 = 0;
     while (guard < 2000000) : (guard += 1) {
-        step(100);
+        step(100, false);
         if (!gpu.isUp()) return false;
         built_at = -100000;
         if (!more()) break;

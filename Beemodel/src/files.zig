@@ -332,6 +332,7 @@ fn proceed() void {
             path_len = 0;
             undo.restart();
             markSaved();
+            app.frameScene();
             app.toast(.ok, "New scene", .{});
         },
         .open => fb.show(.open, "Open...", ".bee", "", openFrom),

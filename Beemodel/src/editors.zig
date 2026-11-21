@@ -237,6 +237,11 @@ fn orbit(v: *vp.View, dx: i32, dy: i32, k0: f32) void {
     const k = k0 * @import("prefs.zig").orbit_speed;
     vp.leaveCamView(v);
     v.gliding = false;
+    if (v.auto_ortho) {
+        // out of an axis view: perspective again
+        v.ortho = false;
+        v.auto_ortho = false;
+    }
     v.yaw -= @as(f32, @floatFromInt(dx)) * k;
     v.pitch = std.math.clamp(v.pitch + @as(f32, @floatFromInt(dy)) * k, -89.9, 89.9);
 }

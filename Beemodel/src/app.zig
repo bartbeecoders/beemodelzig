@@ -912,16 +912,20 @@ pub fn alignView(yaw: f32, pitch: f32) void {
     p.yaw = yaw;
     p.pitch = pitch;
     glideTo(&N(v).view, p);
+    // an axis view is orthographic, until the view is orbited away from it
+    // (not out of a view that was orthographic already: that one stays)
+    if (!N(v).view.ortho) {
+        N(v).view.ortho = true;
+        N(v).view.auto_ortho = true;
+    }
 }
 
-/// Numpad .: turn and zoom onto the selection (or everything).
-pub fn frameSelected() void {
-    const v = viewportArea();
-    if (v < 0) return;
+/// The centre and radius of the selection (`use_sel`) or of everything but
+/// the endless Ground; null when there is nothing.
+fn sceneBounds(use_sel: bool) ?struct { c: m.V3, rad: f32 } {
     var lo: m.V3 = .{ 1e9, 1e9, 1e9 };
     var hi: m.V3 = .{ -1e9, -1e9, -1e9 };
     var any = false;
-    const use_sel = scene.nSelected() > 0;
     for (scene.objects[0..scene.count], 0..) |*o, oi| {
         if (!o.visible or (use_sel and !o.selected)) continue;
         if (!use_sel and o.isGround()) continue; // (the whole scene: not the endless Ground)
@@ -945,13 +949,45 @@ pub fn frameSelected() void {
         }
         any = true;
     }
-    if (!any) return;
-    const c = m.scale(m.add(lo, hi), 0.5);
-    const rad = @max(0.5, m.len(m.sub(hi, lo)) * 0.5);
+    if (!any) return null;
+    return .{ .c = m.scale(m.add(lo, hi), 0.5), .rad = @max(0.5, m.len(m.sub(hi, lo)) * 0.5) };
+}
+
+/// How far back the view sits to see a sphere of radius `rad` whole.
+fn frameDist(rad: f32) f32 {
+    return std.math.clamp(rad / @tan(vp.fov * 0.5 * m.deg) * 1.15, 1.0, 200.0);
+}
+
+/// Numpad .: turn and zoom onto the selection (or everything).
+pub fn frameSelected() void {
+    const v = viewportArea();
+    if (v < 0) return;
+    const b = sceneBounds(scene.nSelected() > 0) orelse return;
     var p = N(v).view.pose();
-    p.target = c;
-    p.dist = std.math.clamp(rad / @tan(vp.fov * 0.5 * m.deg) * 1.15, 1.0, 200.0);
+    p.target = b.c;
+    p.dist = frameDist(b.rad);
     glideTo(&N(v).view, p);
+}
+
+fn frameSceneIn(i: i16, to: vp.Pose) void {
+    if (i < 0) return;
+    const n = N(i);
+    if (!n.leaf) {
+        frameSceneIn(n.a, to);
+        frameSceneIn(n.b, to);
+    } else if (n.editor == .viewport) {
+        n.view.ortho = false;
+        glideTo(&n.view, to);
+    }
+}
+
+/// A new scene: every 3D viewport looks at it as when the program starts.
+pub fn frameScene() void {
+    const to: vp.Pose = .{};
+    for (workspaces[0..n_ws]) |*w| {
+        frameSceneIn(w.root, to);
+        for (w.floats[0..w.nfloats]) |f| frameSceneIn(f.node, to);
+    }
 }
 
 /// Extrude: move the new faces along their normal (as G with that axis).
@@ -2301,6 +2337,16 @@ fn xformInput(ev: wl.Input) void {
 pub fn onInput(cv: *gfx.Canvas, ev: wl.Input) void {
     dirty = true;
     ui.now_ms = now_ms;
+    // The pointer left with a button down: the compositor took the drag over
+    // (a window move, another workspace) and that button's release never
+    // comes. It is up, or the view would hold it for good and take no other
+    // press.
+    if (ev == .leave) {
+        const zh = @import("zuihost.zig");
+        if (zh.buttonDown(.left) or ui.down & ui.LMB != 0) onInput(cv, .{ .button = .{ .button = wl.BTN_LEFT, .pressed = false } });
+        if (zh.buttonDown(.middle) or ui.down & ui.MMB != 0) onInput(cv, .{ .button = .{ .button = wl.BTN_MIDDLE, .pressed = false } });
+        if (zh.buttonDown(.right) or ui.down & ui.RMB != 0) onInput(cv, .{ .button = .{ .button = wl.BTN_RIGHT, .pressed = false } });
+    }
     // (keys after one that needs Zui's frame first wait for it: zuihost.hold)
     if (@import("zuihost.zig").hold(ev)) return;
     // Zui's parts of the UI first (zuihost.zig): what it takes, BeeModel's own UI doesn't see.

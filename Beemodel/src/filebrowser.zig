@@ -4,7 +4,9 @@
 // picks, a double-click (or Enter) opens or takes. Back, forward and up,
 // the folder's parts as crumbs, Ctrl+L to type a path (Tab completes); a
 // filter, Hidden files (Ctrl+H), All files. Places on the left: home,
-// ~/BeeModel, the whole computer, and the last folders used. Saving over a
+// ~/BeeModel and the last folders used; under them the drives (the whole
+// computer and what is mounted under /run/media, /media and /mnt, with
+// their free space). Saving over a
 // file asks first; an export's options (Selected objects only, the up axis,
 // the scale) are a panel beside the list. A modal host client.
 const std = @import("std");
@@ -124,6 +126,79 @@ fn remember(d: []const u8) void {
     const n = @min(d.len, recent[0].len);
     @memcpy(recent[0][0..n], d[0..n]);
     recent_len[0] = n;
+}
+
+// --- the drives: /proc/self/mounts, read when the browser opens -----------------------
+
+var mounts_buf: [64 * 1024]u8 = undefined;
+var drive_path: [16][256]u8 = undefined;
+var drive_place: [16]files.Place = undefined;
+var drive_n: usize = 0;
+
+/// "\040" in a mount point is a space (octal escapes).
+fn unescape(out: []u8, s: []const u8) []const u8 {
+    var n: usize = 0;
+    var i: usize = 0;
+    while (i < s.len and n < out.len) : (n += 1) {
+        if (s[i] == '\\' and i + 4 <= s.len) {
+            if (std.fmt.parseInt(u8, s[i + 1 .. i + 4], 8)) |c| {
+                out[n] = c;
+                i += 4;
+                continue;
+            } else |_| {}
+        }
+        out[n] = s[i];
+        i += 1;
+    }
+    return out[0..n];
+}
+
+/// `name` null: the mount point's last part.
+fn addDrive(name: ?[]const u8, path: []const u8) void {
+    if (drive_n == drive_path.len or path.len > drive_path[0].len) return;
+    for (drive_place[0..drive_n]) |p| if (std.mem.eql(u8, p.path, path)) return;
+    @memcpy(drive_path[drive_n][0..path.len], path);
+    const kept = drive_path[drive_n][0..path.len];
+    const space = files.freeSpace(kept);
+    const last = if (std.mem.lastIndexOfScalar(u8, kept, '/')) |k| kept[k + 1 ..] else kept;
+    drive_place[drive_n] = .{
+        .name = name orelse if (last.len > 0) last else kept,
+        .path = kept,
+        .icon = .{ .builtin = .drive },
+        .free = if (space) |sp| sp.free else null,
+        .total = if (space) |sp| sp.total else null,
+    };
+    drive_n += 1;
+}
+
+/// The computer ("/") first, then the block devices mounted where removable
+/// and extra disks go.
+fn findDrives() void {
+    drive_n = 0;
+    addDrive("Computer", "/");
+    const fd = linux.open("/proc/self/mounts", .{ .ACCMODE = .RDONLY, .CLOEXEC = true }, 0);
+    if (linux.errno(fd) != .SUCCESS) return;
+    defer _ = linux.close(@intCast(fd));
+    var len: usize = 0;
+    while (len < mounts_buf.len) {
+        const r = linux.read(@intCast(fd), mounts_buf[len..].ptr, mounts_buf.len - len);
+        if (linux.errno(r) != .SUCCESS or r == 0) break;
+        len += r;
+    }
+    var lines = std.mem.tokenizeScalar(u8, mounts_buf[0..len], '\n');
+    while (lines.next()) |line| {
+        var f = std.mem.tokenizeScalar(u8, line, ' ');
+        const dev = f.next() orelse continue;
+        const raw = f.next() orelse continue;
+        if (!std.mem.startsWith(u8, dev, "/dev/") or std.mem.startsWith(u8, dev, "/dev/loop")) continue;
+        var pb: [256]u8 = undefined;
+        const mp = unescape(&pb, raw);
+        const under = for ([_][]const u8{ "/run/media/", "/media/", "/mnt/" }) |pre| {
+            if (std.mem.startsWith(u8, mp, pre) and mp.len > pre.len) break true;
+        } else false;
+        if (!under) continue;
+        addDrive(null, mp);
+    }
 }
 
 // --- the disk, through BeeModel's own system calls ------------------------------------
@@ -279,6 +354,7 @@ fn describe(z: *zui.Ui) void {
         b.name_len = @min(suggested_len, b.name.len);
         @memcpy(b.name[0..b.name_len], suggested_buf[0..b.name_len]);
         if (mode == .save) z.setFocus(z.id("File name"));
+        findDrives();
     }
     dlg_open = true;
     const w: f32 = @floatFromInt(@min(860, app.winW() - 40));
@@ -290,7 +366,6 @@ fn describe(z: *zui.Ui) void {
     const places = [_]files.Place{
         .{ .name = "Home", .path = home(), .icon = host.icon(.scene) },
         .{ .name = "BeeModel", .path = bm, .icon = host.icon(.folder) },
-        .{ .name = "Computer", .path = "/", .icon = host.icon(.folder_open) },
     };
     var rec: [6][]const u8 = undefined;
     var nr: usize = 0;
@@ -308,6 +383,7 @@ fn describe(z: *zui.Ui) void {
         },
         .kinds = &ks,
         .places = &places,
+        .drives = drive_place[0..drive_n],
         .recent = rec[0..nr],
         .thumbnails = .{ .get = thumbnail },
         // (a folder: Open it, as BeeModel's browser said)
