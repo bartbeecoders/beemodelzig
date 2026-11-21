@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>BeeModel releases</title>
+  <id>https://beemodel.hideterms.com/releases.xml</id>
+  <link href="https://beemodel.hideterms.com/releases.html"/>
+  <link rel="self" href="https://beemodel.hideterms.com/releases.xml"/>
+  <updated>2026-11-21T07:04:30Z</updated>
+
+</feed>
